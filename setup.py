@@ -20,7 +20,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url="https://github.com/salrashid123/google-auth-library-python-tpm",
     install_requires=[
-          'google-auth>=2.34.0',
+          'google-auth',
           'tpm2_pytss>=2.3.0'
     ],
     packages=setuptools.find_packages(),
