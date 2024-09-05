@@ -19,6 +19,8 @@ for bkt in buckets:
     print(bkt.name)
 ```   
 
+on python pypi: [https://pypi.org/project/google-auth-tpm/](https://pypi.org/project/google-auth-tpm/)
+
 >> Note: This code is not supported by google
 
 #### Setup
