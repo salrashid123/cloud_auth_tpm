@@ -1,6 +1,6 @@
 ## Google Auth Library for Trusted Platform Module based Service Account Keys 
 
-This is an extension of GPC [google-auth-python](https://github.com/googleapis/google-auth-library-python) specifically intended to use service account credentials which are embedded inside a `Trusted Platform Module (TPM)`.
+This is an extension of GCP [google-auth-python](https://github.com/googleapis/google-auth-library-python) specifically intended to use service account credentials which are embedded inside a `Trusted Platform Module (TPM)`.
 
 
 ```python
@@ -8,7 +8,7 @@ from google.cloud import storage
 from google_auth_tpm.credentials import TPMCredentials
 
 ### acquire credential source on the TPM
-pc = TPMCredentials(tcti="/dev/tpm0",
+pc = TPMCredentials(tcti="device:/dev/tpmrm0",
                     path="/HS/SRK/sign1",
                     email="jwt-access-svc-account@$PROJECT_ID.iam.gserviceaccount.com")
 
