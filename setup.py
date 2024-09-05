@@ -12,7 +12,7 @@ with io.open(readme_filename, encoding='utf-8') as readme_file:
 
 setuptools.setup(
     name="google_auth_tpm",
-    version="0.0.32",
+    version="0.0.33",
     author="Sal Rashid",
     author_email="salrashid123@gmail.com",
     description="Python TPM based Credentials for Google Cloud Platform",
@@ -20,8 +20,8 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url="https://github.com/salrashid123/google-auth-library-python-tpm",
     install_requires=[
-          'google-auth',
-          'tpm2_pytss'
+          'google-auth>=2.34.0',
+          'tpm2_pytss>=2.3.0'
     ],
     packages=setuptools.find_packages(),
     classifiers=[
