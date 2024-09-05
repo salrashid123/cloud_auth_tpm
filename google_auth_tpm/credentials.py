@@ -18,7 +18,7 @@ class TPMCredentials(credentials.CredentialsWithQuotaProject):
 
     def __init__(
         self,
-        tcti="/dev/tpmrm0",
+        tcti="device:/dev/tpmrm0",
         path=None,
         email=None,
         scopes="https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email",

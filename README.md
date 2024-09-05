@@ -23,6 +23,23 @@ on python pypi: [https://pypi.org/project/google-auth-tpm/](https://pypi.org/pro
 
 >> Note: This code is not supported by google
 
+---
+
+| Option | Description |
+|:------------|-------------|
+| **`-tcti`** | Path to TPM:  (required; default: `device:/dev/tpmrm0`) |
+| **`-path`** | Path to FAPI signing object (required; default: ``) |
+| **`-email`** | ServiceAccount email (required; default: ``) |
+| **`-scopes`** | Signed Jwt Scopes (optional default: `"https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email"`) |
+| **`-keyid`** | ServiceAccount keyid (optional; default: ``) |
+| **`-expire_in`** | Token expiration in seconds (optional; default: `3600`) |
+| **`-profile`** | FAPI Profile name (optional; default: `P_RSA2048SHA256`) |
+| **`-system_dir`** | FAPI system_dir (optional; default: `"~/.local/share/tpm2-tss/system/keystore"`) |
+| **`-profile_dir`** | FAPI profile_dir (optional; default: `"/etc/tpm2-tss/fapi-profiles"`) |
+| **`-user_dir`** | FAPI user_dirs (optional; default: `"~/.local/share/tpm2-tss/user/keystore/"  `) |
+
+---
+
 #### Setup
 
 This library uses the [Feature API](https://tpm2-pytss.readthedocs.io/en/latest/fapi.html) provided through `tpm2_pytss`.
@@ -30,6 +47,7 @@ This library uses the [Feature API](https://tpm2-pytss.readthedocs.io/en/latest/
 To install that:
 
 ```bash
+## tpm2-tss > 4.1.0 https://github.com/tpm2-software/tpm2-tss
 apt-get install libtss2-dev
 python3 -m pip install tpm2-pytss
 ```
@@ -50,9 +68,13 @@ Setup a new key and download the json
 
 ```bash
 export PROJECT_ID=`gcloud config get-value core/project`
+
 gcloud iam service-accounts create jwt-access-svc-account --display-name "Test Service Account"
+
 export SERVICE_ACCOUNT_EMAIL=jwt-access-svc-account@$PROJECT_ID.iam.gserviceaccount.com
+
 gcloud iam service-accounts keys create jwt-access-svc-account.json --iam-account=$SERVICE_ACCOUNT_EMAIL
+
 gcloud projects add-iam-policy-binding $PROJECT_ID --member=serviceAccount:$SERVICE_ACCOUNT_EMAIL --role=roles/storage.admin
 ```
 
@@ -60,7 +82,9 @@ Extract the `key_id`, `email` and the raw RSA key
 
 ```bash
 export KEYID=`cat jwt-access-svc-account.json | jq -r '.private_key_id'`
+
 export EMAIL=`cat jwt-access-svc-account.json | jq -r '.client_email'`
+
 cat jwt-access-svc-account.json | jq -r '.private_key' > /tmp/private.pem
 ```
 
@@ -69,12 +93,13 @@ Now use the `load.py` FAPI commands to embed the key into the TPM and save it at
 ```bash
 cd example/
 pip3 install -r requirements.txt
+
 # rm -rf ~/.local/share/tpm2-tss   # warning, this'll delete fapi objects you have
-python3 load.py --path="/HS/SRK/sign1" --private_key=/tmp/private.pem # --tcti="swtpm:port=2321"
+python3 load.py --path="/HS/SRK/sign1" --private_key=/tmp/private.pem --tcti=device:/dev/tpmrm0 # --tcti="swtpm:port=2321"
 
 
 ### then run:
-python3 main.py --path=/HS/SRK/sign1 --email=$EMAIL --project_id=$PROJECT_ID --tcti="swtpm:port=2321"
+python3 main.py --path=/HS/SRK/sign1 --email=$EMAIL --project_id=$PROJECT_ID --tcti=device:/dev/tpmrm0  #--tcti="swtpm:port=2321"
 ```
 
 ### How it works

@@ -4,15 +4,16 @@ import argparse
 
 parser = argparse.ArgumentParser(description='create RSA key on TPM')
 parser.add_argument("--path", default='/HS/SRK/sign1', required=True)
-parser.add_argument("--tcti",default='swtpm:port=2321', required=True)
+parser.add_argument("--tcti",default='device:/dev/tpmrm0', required=True)
 parser.add_argument("--private_key",default='', required=True)
 
 args = parser.parse_args()
 
 FAPIConfig(profile_name='P_RSA2048SHA256',tcti=args.tcti, temp_dirs=False, ek_cert_less='yes',
            system_dir="~/.local/share/tpm2-tss/system/keystore",
-           profile_dir="./profiles",
+           profile_dir="./profiles", ### system profiles are at /usr/local/etc/tpm2-tss/fapi-profiles/ or /etc/tpm2-tss/fapi-profiles/
            user_dir="~/.local/share/tpm2-tss/user/keystore/")
+
 
 fapi_ctx = FAPI()
 try:
