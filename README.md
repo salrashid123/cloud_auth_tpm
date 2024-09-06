@@ -1,7 +1,23 @@
-## Google Auth Library for Trusted Platform Module based Service Account Keys 
+## Cloud Auth Library using Trusted Platform Module (TPM)
+
+Python library which supports TPM embedded credentials for various cloud providers.
+
+Ath the moment, only GCP with AWS and Azure when i find time (they're all implemented in golang, its just tedious to map to python)
+
+For GCP:
 
 This is an extension of GCP [google-auth-python](https://github.com/googleapis/google-auth-library-python) specifically intended to use service account credentials which are embedded inside a `Trusted Platform Module (TPM)`.
 
+on python pypi: [https://pypi.org/project/google-auth-tpm/](https://pypi.org/project/google-auth-tpm/)
+
+
+> **>>WARNING<<**: This code is not affiliated with or supported by google
+
+---
+
+### Usage
+
+- **GCPCredentials**
 
 ```python
 from google.cloud import storage
@@ -19,28 +35,55 @@ for bkt in buckets:
     print(bkt.name)
 ```   
 
-on python pypi: [https://pypi.org/project/google-auth-tpm/](https://pypi.org/project/google-auth-tpm/)
+- **AWSHmacCredentials**
 
-> **>>WARNING<<**: This code is not affiliated with or supported by google
+TODO
+
+- **AWSRolesAnywhereCredentials**
+
+TODO
+
+- **AzureCredentials**
+
+TODO
+
+
 
 ---
+
+### Common
+
+| **`tcti`** | Path to TPM:  (required; default: `device:/dev/tpmrm0`) |
+| **`path`** | Path to FAPI signing object (required; default: ``) |
+| **`profile`** | FAPI Profile name (optional; default: `P_RSA2048SHA256`) |
+| **`system_dir`** | FAPI system_dir (optional; default: `"~/.local/share/tpm2-tss/system/keystore"`) |
+| **`profile_dir`** | FAPI profile_dir (optional; default: `"/etc/tpm2-tss/fapi-profiles"`) |
+| **`user_dir`** | FAPI user_dirs (optional; default: `"~/.local/share/tpm2-tss/user/keystore/"  `) |
+
+### For GCP Credentials
 
 | Option | Description |
 |:------------|-------------|
-| **`-tcti`** | Path to TPM:  (required; default: `device:/dev/tpmrm0`) |
-| **`-path`** | Path to FAPI signing object (required; default: ``) |
-| **`-email`** | ServiceAccount email (required; default: ``) |
-| **`-scopes`** | Signed Jwt Scopes (optional default: `"https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email"`) |
-| **`-keyid`** | ServiceAccount keyid (optional; default: ``) |
-| **`-expire_in`** | Token expiration in seconds (optional; default: `3600`) |
-| **`-profile`** | FAPI Profile name (optional; default: `P_RSA2048SHA256`) |
-| **`-system_dir`** | FAPI system_dir (optional; default: `"~/.local/share/tpm2-tss/system/keystore"`) |
-| **`-profile_dir`** | FAPI profile_dir (optional; default: `"/etc/tpm2-tss/fapi-profiles"`) |
-| **`-user_dir`** | FAPI user_dirs (optional; default: `"~/.local/share/tpm2-tss/user/keystore/"  `) |
+| **`email`** | ServiceAccount email (required; default: ``) |
+| **`scopes`** | Signed Jwt Scopes (optional default: `"https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email"`) |
+| **`keyid`** | ServiceAccount keyid (optional; default: ``) |
+| **`expire_in`** | Token expiration in seconds (optional; default: `3600`) |
+
+### For AWS Credentials (HMAC)
+
+>> TODO:
+
+### For AWS Credentials (Roles Anywhere)
+
+>> TODO
+
+### For Azure Credentials
+
+>> TODO
 
 ---
 
-#### Setup
+### Setup
 
 This library uses the [Feature API](https://tpm2-pytss.readthedocs.io/en/latest/fapi.html) provided through `tpm2_pytss`.
 
@@ -51,6 +94,8 @@ To install that:
 apt-get install libtss2-dev
 python3 -m pip install tpm2-pytss
 ```
+
+#### Setup - GCP
 
 There are several ways you can have a TPM based service account key:
 
@@ -95,14 +140,14 @@ cd example/
 pip3 install -r requirements.txt
 
 # rm -rf ~/.local/share/tpm2-tss   # warning, this'll delete fapi objects you have
-python3 load.py --path="/HS/SRK/sign1" --private_key=/tmp/private.pem --tcti=device:/dev/tpmrm0 # --tcti="swtpm:port=2321"
+python3 load_gcp.py --path="/HS/SRK/sign1" --private_key=/tmp/private.pem --tcti=device:/dev/tpmrm0 # --tcti="swtpm:port=2321"
 
 
 ### then run:
-python3 main.py --path=/HS/SRK/sign1 --email=$EMAIL --project_id=$PROJECT_ID --tcti=device:/dev/tpmrm0  # --tcti="swtpm:port=2321"
+python3 main_gcp.py --path=/HS/SRK/sign1 --email=$EMAIL --project_id=$PROJECT_ID --tcti=device:/dev/tpmrm0  # --tcti="swtpm:port=2321"
 ```
 
-### How it works
+##### How it works - GCP
 
 GCP APIs allows for service account authentication using a [Self-signed JWT with scope](https://google.aip.dev/auth/4111).
 
@@ -125,6 +170,22 @@ What that means is if you take a private key and generate a valid JWT with in th
 
 So since we have the RSA key on the TPM, we can use the FAPI to make it "sign" data for the JWT.
 
+#### Setup - AWS
+
+##### HMAC
+
+TODO: once FAPI supports hmac
+
+ref: [AWS Credentials for Hardware Security Modules and TPM based AWS_SECRET_ACCESS_KEY](https://github.com/salrashid123/aws_hmac)
+
+##### Roles Anywhere
+
+TODO: support [AWA RolesAnywhere Signer](https://github.com/salrashid123/aws_rolesanywhere_signer)
+
+#### Setup - Azure
+
+TODO: [KMS, TPM and HSM based Azure Certificate Credentials](https://github.com/salrashid123/azsigner)
+
 #### Local Build
 
 to generate the library from scratch and run local, run 
@@ -137,7 +198,7 @@ virtualenv env
 source env/bin/activate
 
 pip3 install ../
-pip3 install -r requirements.txt 
+pip3 install -r requirements-gcp.txt 
 ```
 
 #### Software TPM

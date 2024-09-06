@@ -11,18 +11,21 @@ with io.open(readme_filename, encoding='utf-8') as readme_file:
 
 
 setuptools.setup(
-    name="google_auth_tpm",
-    version="0.0.35",
+    name="cloud_auth_tpm",
+    version="0.0.40",
     author="Sal Rashid",
     author_email="salrashid123@gmail.com",
-    description="Python TPM based Credentials for Google Cloud Platform",
+    description="Python TPM based Credentials for Cloud Providers",
     long_description=readme,
     long_description_content_type='text/markdown',
-    url="https://github.com/salrashid123/google-auth-library-python-tpm",
+    url="https://github.com/salrashid123/cloud-auth-tpm",
     install_requires=[
-          'google-auth>=2.34.0',
           'tpm2_pytss>=2.3.0'
     ],
+    extras_require={
+        'gcp': ['google-auth>=2.34.0'],
+        'aws': ['boto3'],
+    },    
     packages=setuptools.find_packages(),
     classifiers=[
         "License :: OSI Approved :: Apache Software License",

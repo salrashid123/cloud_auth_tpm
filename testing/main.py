@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-
-
-from google_auth_tpm.credentials import TPMCredentials
+from cloud_auth_tpm.gcp.gcpcredentials import GCPCredentials
 
 

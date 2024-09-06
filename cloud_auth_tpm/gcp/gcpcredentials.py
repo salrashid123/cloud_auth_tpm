@@ -11,10 +11,8 @@ from cryptography.hazmat.backends import default_backend
 from google.auth import credentials, _helpers
 from google.auth import exceptions
 
-_TIMEOUT = 2
 
-
-class TPMCredentials(credentials.CredentialsWithQuotaProject):
+class GCPCredentials(credentials.CredentialsWithQuotaProject):
 
     def __init__(
         self,
@@ -30,7 +28,7 @@ class TPMCredentials(credentials.CredentialsWithQuotaProject):
         user_dir = "~/.local/share/tpm2-tss/user/keystore/"        
     ):
 
-        super(TPMCredentials, self).__init__()
+        super(GCPCredentials, self).__init__()
         self._tcti = tcti
         self._path = path
         self._email = email

@@ -1,5 +1,5 @@
 from google.cloud import storage
-from google_auth_tpm.credentials import TPMCredentials
+from cloud_auth_tpm.gcp.gcpcredentials import GCPCredentials
 
 import argparse
 
@@ -10,7 +10,7 @@ parser.add_argument("--email",default='tpm-sa@core-eso.iam.gserviceaccount.com',
 parser.add_argument("--project_id",default='core-eso', required=True)
 args = parser.parse_args()
 
-pc = TPMCredentials(tcti=args.tcti,
+pc = GCPCredentials(tcti=args.tcti,
                     path=args.path,
                     profile_dir="./profiles",
                     email=args.email)
