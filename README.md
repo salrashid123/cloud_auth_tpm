@@ -52,7 +52,7 @@ for bkt in buckets:
 
 ---
 
-### Common
+### Configuration
 
 | Option | Description |
 |:------------|-------------|
@@ -63,7 +63,7 @@ for bkt in buckets:
 | **`profile_dir`** | FAPI profile_dir (optional; default: `"/etc/tpm2-tss/fapi-profiles"`) |
 | **`user_dir`** | FAPI user_dirs (optional; default: `"~/.local/share/tpm2-tss/user/keystore/"  `) |
 
-### For GCP Credentials
+- **GCPCredentials**
 
 | Option | Description |
 |:------------|-------------|
@@ -72,15 +72,15 @@ for bkt in buckets:
 | **`keyid`** | ServiceAccount keyid (optional; default: ``) |
 | **`expire_in`** | Token expiration in seconds (optional; default: `3600`) |
 
-### For AWS Credentials (HMAC)
+- **AWSHmacCredentials**
 
 >> TODO:
 
-### For AWS Credentials (Roles Anywhere)
+- **AWSRolesAnywhereCredentials**
 
 >> TODO
 
-### For Azure Credentials
+- **AzureCredentials**
 
 >> TODO
 
