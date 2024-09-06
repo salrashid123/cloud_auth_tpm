@@ -2,7 +2,7 @@
 
 Python library which supports TPM embedded credentials for various cloud providers.
 
-Ath the moment, only GCP with AWS and Azure when i find time (they're all implemented in golang, its just tedious to map to python)
+Ath the moment, only GCP but followup with AWS and Azure when i find time (they're all implemented in golang, its just tedious to map to python)
 
 For GCP:
 
@@ -21,10 +21,11 @@ on python pypi: [https://pypi.org/project/google-auth-tpm/](https://pypi.org/pro
 
 ```python
 from google.cloud import storage
-from google_auth_tpm.credentials import TPMCredentials
+from cloud_auth_tpm.gcp.gcpcredentials import GCPCredentials
 
 ### acquire credential source on the TPM
-pc = TPMCredentials(tcti="device:/dev/tpmrm0",
+####  pip3 install cloud_auth_tpm[gcp]
+pc = GCPCredentials(tcti="device:/dev/tpmrm0",
                     path="/HS/SRK/sign1",
                     email="jwt-access-svc-account@$PROJECT_ID.iam.gserviceaccount.com")
 
@@ -37,15 +38,15 @@ for bkt in buckets:
 
 - **AWSHmacCredentials**
 
-TODO
+   TODO
 
 - **AWSRolesAnywhereCredentials**
 
-TODO
+   TODO
 
 - **AzureCredentials**
 
-TODO
+   TODO
 
 
 
