@@ -54,6 +54,8 @@ for bkt in buckets:
 
 ### Common
 
+| Option | Description |
+|:------------|-------------|
 | **`tcti`** | Path to TPM:  (required; default: `device:/dev/tpmrm0`) |
 | **`path`** | Path to FAPI signing object (required; default: ``) |
 | **`profile`** | FAPI Profile name (optional; default: `P_RSA2048SHA256`) |
