@@ -8,7 +8,7 @@ For GCP:
 
 This is an extension of GCP [google-auth-python](https://github.com/googleapis/google-auth-library-python) specifically intended to use service account credentials which are embedded inside a `Trusted Platform Module (TPM)`.
 
-on python pypi: [https://pypi.org/project/google-auth-tpm/](https://pypi.org/project/google-auth-tpm/)
+on python pypi: [https://pypi.org/project/cloud-auth-tpm/](https://pypi.org/project/cloud-auth-tpm/)
 
 
 > **>>WARNING<<**: This code is not affiliated with or supported by google
