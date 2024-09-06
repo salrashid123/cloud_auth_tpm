@@ -1,7 +1,7 @@
 from tpm2_pytss import *
 
 import argparse
-
+import sys
 parser = argparse.ArgumentParser(description='create RSA key on TPM')
 parser.add_argument("--path", default='/HS/SRK/sign1', required=True)
 parser.add_argument("--tcti",default='device:/dev/tpmrm0', required=True)
@@ -32,7 +32,7 @@ try:
    fapi_ctx.import_object(path=args.path, import_data=key_private_pem,exists_ok=False)
 except Exception as e:
   print(e)
-  pass
+  sys.exit(1)
 
 print('tpm objects:')
 l = fapi_ctx.list(search_path="/HS/")

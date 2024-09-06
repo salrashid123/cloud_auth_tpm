@@ -21,7 +21,7 @@ for bkt in buckets:
 
 on python pypi: [https://pypi.org/project/google-auth-tpm/](https://pypi.org/project/google-auth-tpm/)
 
->> Note: This code is not supported by google
+> **>>WARNING<<**: This code is not affiliated with or supported by google
 
 ---
 
@@ -99,7 +99,7 @@ python3 load.py --path="/HS/SRK/sign1" --private_key=/tmp/private.pem --tcti=dev
 
 
 ### then run:
-python3 main.py --path=/HS/SRK/sign1 --email=$EMAIL --project_id=$PROJECT_ID --tcti=device:/dev/tpmrm0  #--tcti="swtpm:port=2321"
+python3 main.py --path=/HS/SRK/sign1 --email=$EMAIL --project_id=$PROJECT_ID --tcti=device:/dev/tpmrm0  # --tcti="swtpm:port=2321"
 ```
 
 ### How it works
@@ -134,6 +134,7 @@ python3 setup.py sdist bdist_wheel
 
 cd example
 virtualenv env
+source env/bin/activate
 
 pip3 install ../
 pip3 install -r requirements.txt 

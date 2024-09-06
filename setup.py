@@ -12,7 +12,7 @@ with io.open(readme_filename, encoding='utf-8') as readme_file:
 
 setuptools.setup(
     name="google_auth_tpm",
-    version="0.0.34",
+    version="0.0.35",
     author="Sal Rashid",
     author_email="salrashid123@gmail.com",
     description="Python TPM based Credentials for Google Cloud Platform",

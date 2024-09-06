@@ -63,7 +63,7 @@ class TPMCredentials(credentials.CredentialsWithQuotaProject):
         stringAsBase64 = base64.urlsafe_b64encode(stringAsBytes).decode('utf-8').replace('=','')
         return stringAsBase64 
 
-    def jwt_token(self,iat, exp, key_id, email, scopes):
+    def jwt_token(self,fapi_ctx, iat, exp, key_id, email, scopes):
         header = {
             "alg": "RS256",
             "typ": "JWT",
@@ -78,7 +78,7 @@ class TPMCredentials(credentials.CredentialsWithQuotaProject):
         }
         total_params = str(self.base64url_encode(json.dumps(header))) + '.' + str(self.base64url_encode(json.dumps(payload)))
         digest = self.sha256(total_params.encode())
-        sig, pub,cert = self._fapi_ctx.sign(path=self._path, digest=digest, padding="rsa_ssa")
+        sig, pub,cert = fapi_ctx.sign(path=self._path, digest=digest, padding="rsa_ssa")
         stringAsBase64 = base64.urlsafe_b64encode(sig).decode('utf-8').replace('=','')
         token = total_params + '.' + stringAsBase64
         return token
@@ -95,7 +95,7 @@ class TPMCredentials(credentials.CredentialsWithQuotaProject):
                     profile_dir=self._profile_dir,
                     user_dir=self._user_dir)
 
-            self._fapi_ctx = FAPI()
+            fapi_ctx = FAPI()
 
             now = _helpers.utcnow()
             ea = now + timedelta(seconds=self._expire_in)
@@ -103,9 +103,9 @@ class TPMCredentials(credentials.CredentialsWithQuotaProject):
             iat = calendar.timegm(now.utctimetuple())
             exp = calendar.timegm(e.utctimetuple())
 
-            self.token = self.jwt_token(iat,exp, self._key_id,self._email, self._scopes)
+            self.token = self.jwt_token(fapi_ctx,iat,exp, self._key_id,self._email, self._scopes)
             self.expiry =  e
-            self._fapi_ctx.close()
+            fapi_ctx.close()
         except Exception as e:
             raise exceptions.RefreshError("Error : {}".format(e))
 
