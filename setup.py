@@ -12,7 +12,7 @@ with io.open(readme_filename, encoding='utf-8') as readme_file:
 
 setuptools.setup(
     name="cloud_auth_tpm",
-    version="0.0.42",
+    version="0.5.0",
     author="Sal Rashid",
     author_email="salrashid123@gmail.com",
     description="Python TPM based Credentials for Cloud Providers",
@@ -20,11 +20,14 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url="https://github.com/salrashid123/cloud-auth-tpm",
     install_requires=[
-          'tpm2_pytss>=2.3.0'
+          'tpm2_pytss>=2.3.0',
+          'cryptography',
+          'requests'
     ],
     extras_require={
         'gcp': ['google-auth>=2.34.0'],
-        'aws': ['boto3'],
+        'aws': ['boto3', 'botocore'],
+        'azure': ['azure-identity', 'azure-core'],        
     },    
     packages=setuptools.find_packages(),
     classifiers=[

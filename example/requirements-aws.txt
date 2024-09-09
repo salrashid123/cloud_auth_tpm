@@ -1,0 +1,6 @@
+boto3
+botocore
+cloud_auth_tpm[aws]
+tpm2-pytss
+cryptography
+requests

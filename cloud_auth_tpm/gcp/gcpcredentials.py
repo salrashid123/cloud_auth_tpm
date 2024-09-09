@@ -2,7 +2,7 @@ from tpm2_pytss import *
 
 import base64
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 import calendar
 
 from cryptography.hazmat.primitives import hashes

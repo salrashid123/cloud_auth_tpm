@@ -3,8 +3,8 @@ from cloud_auth_tpm.gcp.gcpcredentials import GCPCredentials
 
 import argparse
 
-parser = argparse.ArgumentParser(description='create RSA key on TPM')
-parser.add_argument("--path", default='/HS/SRK/sign1', required=True)
+parser = argparse.ArgumentParser(description='GCP Auth using TPM')
+parser.add_argument("--path", default='/HS/SRK/gcpsign1', required=True)
 parser.add_argument("--tcti",default='device:/dev/tpmrm0', required=True)
 parser.add_argument("--email",default='tpm-sa@core-eso.iam.gserviceaccount.com', required=True)
 parser.add_argument("--project_id",default='core-eso', required=True)

@@ -1,0 +1,6 @@
+azure-identity
+azure-storage-blob
+cloud_auth_tpm[azure]
+tpm2-pytss
+cryptography
+requests
