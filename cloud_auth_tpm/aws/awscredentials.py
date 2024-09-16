@@ -1,5 +1,7 @@
 from tpm2_pytss import *
 
+from cloud_auth_tpm.base import BaseCredential
+
 import base64
 import json
 from datetime import datetime
@@ -18,12 +20,18 @@ from botocore.credentials import RefreshableCredentials, CredentialProvider
 from botocore.session import get_session
 
 
-class AWSCredentials():
+class AWSCredentials(BaseCredential, CredentialProvider):
+
+    METHOD = 'tpm-credential'
 
     def __init__(
         self,
-        tcti="device:/dev/tpmrm0",
-        path=None,
+        tcti=None,
+        keyfile=None,
+        ownerpassword=None,
+        password=None,
+        policy_impl=None,
+
         public_certificate_file=None,
         region=None,
         duration_seconds=3600,
@@ -31,17 +39,15 @@ class AWSCredentials():
         profile_arn=None,
         role_arn=None,
         session_name=None,
-        profile='P_RSA2048SHA256',
-        system_dir="~/.local/share/tpm2-tss/system/keystore",
-        profile_dir="/etc/tpm2-tss/fapi-profiles",
-        user_dir="~/.local/share/tpm2-tss/user/keystore/",
+
+
+
         **kwargs: Any
     ):
+        BaseCredential.__init__(self, tcti=tcti, keyfile=keyfile,
+                                ownerpassword=ownerpassword, password=password, policy_impl=policy_impl)
+        CredentialProvider.__init__(self)
 
-        super(AWSCredentials, self).__init__()
-        self._tcti = tcti
-        self._profile = profile
-        self._path = path
         self._public_certificate_file = public_certificate_file
         self._region = region
         self._duration_seconds = duration_seconds
@@ -49,14 +55,11 @@ class AWSCredentials():
         self._role_arn = role_arn
         self._session_name = session_name
         self._trust_anchor_arn = trust_anchor_arn
-        self._system_dir = system_dir
-        self._profile_dir = profile_dir
-        self._user_dir = user_dir
         self._long_running_session = None
         self._endpoint = 'https://rolesanywhere.{}.amazonaws.com'.format(
             self._region)
 
-        if self._path == '' or self._public_certificate_file == '' or self._region == '' or self._trust_anchor_arn == '' or self._profile_arn == '' or self._role_arn == '':
+        if self._public_certificate_file == '' or self._region == '' or self._trust_anchor_arn == '' or self._profile_arn == '' or self._role_arn == '':
             raise Exception("Error : {}".format(
                 "public_certificate_file, region trust_anchor_arn, _role_arn and  profile_arn must be specified"))
 
@@ -68,20 +71,13 @@ class AWSCredentials():
         session = get_session()
         session_credentials = RefreshableCredentials.create_from_metadata(metadata=self._refresh(),
                                                                           refresh_using=self._refresh,
-                                                                          method='sts-assume-role')
+                                                                          method=self.METHOD)
         session._credentials = session_credentials
         session.set_config_variable('region', self._region)
         self._long_running_session = Session(botocore_session=session)
 
     def _refresh(self):
         try:
-            FAPIConfig(profile_name=self._profile, tcti=self._tcti, temp_dirs=False, ek_cert_less='yes',
-                       system_dir=self._system_dir,
-                       profile_dir=self._profile_dir,
-                       user_dir=self._user_dir)
-
-            fapi_ctx = FAPI()
-
             # source:  https://nerdydrunk.info/aws:roles_anywhere
             method = 'POST'
             service = 'rolesanywhere'
@@ -137,13 +133,9 @@ class AWSCredentials():
                 '\n' + \
                 hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
 
-            digest = hashlib.sha256(string_to_sign.encode('utf-8'))
+            sig = self.sign(data=string_to_sign.encode('utf-8'))
 
-            signature, pub, cert = fapi_ctx.sign(
-                path=self._path, digest=digest.digest(), padding="rsa_ssa")
-            fapi_ctx.close()
-
-            signature_hex = signature.hex()
+            signature_hex = sig.hex()
             authorization_header = algorithm + ' ' + 'Credential=' + \
                 str(serial_number_dec) + '/' + credential_scope + ', ' + \
                 'SignedHeaders=' + signed_headers + ', ' + 'Signature=' + signature_hex
