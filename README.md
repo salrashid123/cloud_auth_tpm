@@ -150,7 +150,6 @@ for blob in blob_list:
 | **`role_arn`** | RolesAnywhere RoleArn (required; default: ``) |
 | **`profile_arn`** | RolesAnywhere Profile Arn (Required; default: ``) |
 | **`session_name`** | AWS Session Name (optional; default: ``) |
-| **`aws_access_key_id`** | AWS_ACCESS_KEY_ID if using HMAC based credentials (optional; default: ``) |
 
 ##### **AWSHMACCredentials**
 
