@@ -637,6 +637,13 @@ m5OgWpXX8bLqlRLY38P5J3HZOStjYxNBj5I3PdkvD7DFdlb7ZrJZoUg=
 
 As a side note, although this is a private key in PEM format, this is NOT usable anywhere outside of that specific TPM and the actual private rsa/hmac key is never exposed outside of the TPM.
 
+#### Session Encryption
+
+TODO:  Enable [TPM Bus encryption](https://trustedcomputinggroup.org/wp-content/uploads/TCG_CPU_TPM_Bus_Protection_Guidance_Passive_Attack_Mitigation_8May23-3.pdf).
+
+for this, we'd use a well known key handle like the endorsement key shown [here](https://github.com/salrashid123/tpm2/blob/master/pytss/esapi_session_encryption.py).  The EKRSA itself could be verified by comparing the derived 'name' at runtime and comparing it with the hex expected name provided by the user (similar to [this](https://github.com/salrashid123/gcp-adc-tpm?tab=readme-ov-file#encrypted-tpm-sessions)
+
+
 #### Local Build
 
 to generate the library from scratch and run local, run 
