@@ -18,7 +18,7 @@ setuptools.setup(
     description="Python TPM based Credentials for Cloud Providers",
     long_description=readme,
     long_description_content_type='text/markdown',
-    url="https://github.com/salrashid123/cloud-auth-tpm",
+    url="https://github.com/salrashid123/cloud_auth_tpm",
     install_requires=[
           'tpm2_pytss>=2.3.0',
           'cryptography',
