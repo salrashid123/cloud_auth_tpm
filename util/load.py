@@ -7,7 +7,20 @@ import sys
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-# pip install git+https://github.com/tpm2-software/tpm2-pytss.git
+'''
+Utility script which converts tpm2 created keys (TPM2B_PUBLIC,TPM2B_PRIVATE) to PEM format  
+
+https://www.hansenpartnership.com/draft-bottomley-tpm2-keys.html
+
+If the origin key has a password/userAuth, enter in anything as -keyPassword
+
+alternatives is to use
+https://github.com/tpm2-software/tpm2-tss-engine/blob/master/man/tpm2tss-genkey.1.md
+
+or
+https://github.com/salrashid123/tpm2genkey?tab=readme-ov-file#convert-pem----tpm2b_public-tpm2b_private
+
+'''
 
 parser = argparse.ArgumentParser(
     description='convert public/private key to h2 keyfile')

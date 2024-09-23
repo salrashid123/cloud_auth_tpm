@@ -1,5 +1,6 @@
 from tpm2_pytss import *
 from tpm2_pytss.tsskey import TSSPrivKey
+from tpm2_pytss.internal.templates import _ek
 
 from cloud_auth_tpm.policy.policy import PolicyEval
 
@@ -50,11 +51,13 @@ class BaseCredential():
         ownerpassword,
         password,
         policy_impl: PolicyEval,
+        enc_key_name,
     ):
 
         self._tcti = tcti or self.DEFAULT_TCTI
         self._password = password
         self._ownerpassword = ownerpassword
+        self._enc_key_name = enc_key_name
 
         f = open(keyfile, "r")
         self._kb = f.read()
@@ -80,25 +83,60 @@ class BaseCredential():
 
             rkeyLoaded = ectx.load(primary1, k.private, k.public)
             ectx.flush_context(primary1)
+            
+            if k.empty_auth == False and self._password == '':
+                raise Exception("key has auth but password not set")
 
-            digest = sha256(data)
+            if self._password != '':
+                ectx.tr_set_auth(rkeyLoaded, self._password)
+
+
+            nv, tmpl = _ek.EK_RSA2048
+            ## todo, EK may not have the same ownerpassword...
+            # inSensitive = TPM2B_SENSITIVE_CREATE(
+            #         TPMS_SENSITIVE_CREATE(userAuth=TPM2B_AUTH(self._ownerpassword)))
+            inSensitive = TPM2B_SENSITIVE_CREATE()
+            handle, outpub, _, _, _ = ectx.create_primary(
+                inSensitive, tmpl, ESYS_TR.ENDORSEMENT)
+
+            # n = ectx.tr_get_name(handle)
+            n = outpub.get_name()
+            if self._enc_key_name != "":
+                if bytes(n).hex() != self._enc_key_name:
+                    raise Exception("session encryption key name mismatch: expected {}, got {}".format(
+                        self._enc_key_name, bytes(n).hex()))                
+
+            
             scheme = TPMT_SIG_SCHEME(scheme=TPM2_ALG.RSASSA)
             scheme.details.any.hashAlg = TPM2_ALG.SHA256
             validation = TPMT_TK_HASHCHECK(
                 tag=TPM2_ST.HASHCHECK, hierarchy=TPM2_RH.OWNER)
             digest, ticket = ectx.hash(data, TPM2_ALG.SHA256, ESYS_TR.OWNER)
 
-            if self._password != None:
-                ectx.tr_set_auth(rkeyLoaded, self._password)
-
             if self._policy_impl == None:
+                hsess = ectx.start_auth_session(
+                    tpm_key=handle,
+                    bind=ESYS_TR.NONE,
+                    session_type=TPM2_SE.HMAC,
+                    symmetric=TPMT_SYM_DEF(
+                        algorithm=TPM2_ALG.AES,
+                        keyBits=TPMU_SYM_KEY_BITS(sym=128),
+                        mode=TPMU_SYM_MODE(sym=TPM2_ALG.CFB),
+                    ),
+                    auth_hash=TPM2_ALG.SHA256,
+                )
+                ectx.trsess_set_attributes(
+                    hsess, (TPMA_SESSION.DECRYPT)
+                )
                 s = ectx.sign(rkeyLoaded, TPM2B_DIGEST(
-                    digest), scheme, validation)
+                    digest), scheme, validation, session1=hsess)
             else:
-                sess = self._policy_impl.policy_callback(ectx=ectx)
+                sess = self._policy_impl.policy_callback(
+                    ectx=ectx, handle=handle)
                 s = ectx.sign(rkeyLoaded, TPM2B_DIGEST(digest),
                               scheme, validation, session1=sess)
-                ectx.flush_context(sess)
+                
+            ectx.flush_context(handle)
             ectx.flush_context(rkeyLoaded)
             ectx.close()
 

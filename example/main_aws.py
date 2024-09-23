@@ -1,6 +1,6 @@
 import boto3
 from cloud_auth_tpm.aws.awscredentials import AWSCredentials
-from cloud_auth_tpm.policy import PCRPolicy
+from cloud_auth_tpm.policy import PCRPolicy, PCRAuthValuePolicy
 
 import argparse
 
@@ -10,7 +10,7 @@ parser.add_argument("--keyfile", default='', required=True)
 parser.add_argument("--ownerpassword", default='')
 parser.add_argument("--password", default='')
 parser.add_argument("--pcr", default='')
-
+parser.add_argument("--enc_key_name", default='')
 
 parser.add_argument("--public_certificate_file",
                     default="certs/alice-cert.crt", required=True)
@@ -24,51 +24,48 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if args.pcr == '':
+policy_impl = None
 
-    pc = AWSCredentials(tcti=args.tcti,
-                        keyfile=args.keyfile,
-                        ownerpassword=args.ownerpassword,
-                        password=args.password,
-                        policy_impl=None,
+# if your pcr value bound to is:
+# $ tpm2_pcrread sha256:23
+#    sha256:
+#     23: 0x0000000000000000000000000000000000000000000000000000000000000000
 
-                        public_certificate_file=args.public_certificate_file,
-                        region=args.region,
-                        duration_seconds=1000,
-                        trust_anchor_arn=args.trust_anchor_arn, 
-                        session_name="foo", 
-                        role_arn=args.role_arn, 
-                        profile_arn=args.profile_arn)
-
-else:
-    pol = {
-        "description": "Policy PCR {} TPM2_ALG_SHA256".format(args.pcr),
-        "policy": [
-            {
-                "type": "POLICYPCR",
-                "pcrs": [
+pol = {
+    "description": "Policy PCR {} TPM2_ALG_SHA256".format(args.pcr),
+    "policy": [
+        {
+            "type": "POLICYPCR",
+            "pcrs": [
                     {
                         "pcr": args.pcr,
                         "hashAlg": "TPM2_ALG_SHA256",
                         "digest": "0000000000000000000000000000000000000000000000000000000000000000"
                     }
-                ]
-            }
-        ]
-    }
-    pc = AWSCredentials(tcti=args.tcti,
-                        keyfile=args.keyfile,
-                        ownerpassword=args.ownerpassword,
-                        password=args.password,
-                        policy_impl=PCRPolicy(policy=pol),
+            ]
+        }
+    ]
+}
 
-                        public_certificate_file=args.public_certificate_file,
-                        region=args.region,
-                        duration_seconds=1000,
-                        trust_anchor_arn=args.trust_anchor_arn, 
-                        session_name="foo", 
-                        role_arn=args.role_arn, 
-                        profile_arn=args.profile_arn)
+if args.pcr != '' and args.password != '':
+    policy_impl = PCRAuthValuePolicy(policy=pol)
+elif args.pcr != '':
+    policy_impl = PCRPolicy(policy=pol)
+
+pc = AWSCredentials(tcti=args.tcti,
+                    keyfile=args.keyfile,
+                    ownerpassword=args.ownerpassword,
+                    password=args.password,
+                    policy_impl=None,
+                    enc_key_name=args.enc_key_name,
+
+                    public_certificate_file=args.public_certificate_file,
+                    region=args.region,
+                    duration_seconds=1000,
+                    trust_anchor_arn=args.trust_anchor_arn,
+                    session_name="foo",
+                    role_arn=args.role_arn,
+                    profile_arn=args.profile_arn)
 
 
 session = pc.get_session()

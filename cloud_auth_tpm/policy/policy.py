@@ -1,4 +1,4 @@
-from tpm2_pytss import ESAPI
+from tpm2_pytss import ESAPI, ESYS_TR
 from abc import ABCMeta, abstractmethod
 
 
@@ -10,5 +10,5 @@ class PolicyEval(object, metaclass=ABCMeta):
         self._debug = debug
 
     @abstractmethod
-    def policy_callback(self, ectx: ESAPI):
+    def policy_callback(self, ectx: ESAPI, handle: ESYS_TR):
         pass

@@ -36,6 +36,7 @@ class AzureCredentials(BaseCredential,TokenCredential):
         ownerpassword=None,
         password=None,
         policy_impl=None,
+        enc_key_name=None,
 
         tenant_id=None,
         client_id=None,
@@ -60,7 +61,7 @@ class AzureCredentials(BaseCredential,TokenCredential):
                 raise Exception("Error : currently only RSA_WITH_SHA256 keys are supported, got {}".format(
                     self._cert.signature_algorithm_oid))
 
-        BaseCredential.__init__(self,tcti=tcti,keyfile=keyfile,ownerpassword=ownerpassword,password=password,policy_impl=policy_impl)
+        BaseCredential.__init__(self,tcti=tcti,keyfile=keyfile,ownerpassword=ownerpassword,password=password,policy_impl=policy_impl,enc_key_name=enc_key_name)
         TokenCredential.__init__(self)
 
         self._tenant_id = tenant_id

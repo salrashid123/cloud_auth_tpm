@@ -2,6 +2,7 @@ from tpm2_pytss import *
 
 from cloud_auth_tpm.base import BaseCredential
 from tpm2_pytss.tsskey import TSSPrivKey
+from tpm2_pytss.internal.templates import _ek
 
 import json
 from datetime import datetime
@@ -27,6 +28,7 @@ class AWSHMACCredentials(CredentialProvider):
         ownerpassword=None,
         password=None,
         policy_impl=None,
+        enc_key_name=None,
 
         region=None,
         duration_seconds=3600,
@@ -47,6 +49,7 @@ class AWSHMACCredentials(CredentialProvider):
         self._ownerpassword = ownerpassword
         self._password = password
         self._policy_impl = policy_impl
+        self._enc_key_name = enc_key_name
 
         self._region = region
         self._duration_seconds = duration_seconds
@@ -108,14 +111,28 @@ class AWSHMACCredentials(CredentialProvider):
         if self._password != None:
             ectx.tr_set_auth(hkeyLoaded, self._password)
 
+        nv, tmpl = _ek.EK_RSA2048
+
+        inSensitive = TPM2B_SENSITIVE_CREATE()
+        handle, outpub, _, _, _ = ectx.create_primary(
+            inSensitive, tmpl, ESYS_TR.ENDORSEMENT)
+
+        # n = ectx.tr_get_name(handle)
+        n = outpub.get_name()
+        if self._enc_key_name != "":
+            if bytes(n).hex() != self._enc_key_name:
+                raise Exception("session encryption key name mismatch: expected {}, got {}".format(
+                    self._enc_key_name, bytes(n).hex()))
+
         if self._policy_impl == None:
-            thmac = ectx.hmac(hkeyLoaded, dateStamp, TPM2_ALG.SHA256)
+            thmac = ectx.hmac(hkeyLoaded, dateStamp, TPM2_ALG.SHA256,
+                              session1=ESYS_TR.PASSWORD)
         else:
-            sess = self._policy_impl.policy_callback(ectx=ectx)
+            sess = self._policy_impl.policy_callback(ectx=ectx,  handle=handle)
             thmac = ectx.hmac(hkeyLoaded, dateStamp,
                               TPM2_ALG.SHA256, session1=sess)
-            ectx.flush_context(sess)
 
+        ectx.flush_context(handle)
         ectx.flush_context(hkeyLoaded)
         kDate = thmac.__bytes__()
         ectx.close()

@@ -1,6 +1,6 @@
 from azure.storage.blob import BlobServiceClient
 from cloud_auth_tpm.azure.azurecredentials import AzureCredentials
-from cloud_auth_tpm.policy import PCRPolicy
+from cloud_auth_tpm.policy import PCRPolicy, PCRAuthValuePolicy
 
 import argparse
 
@@ -10,6 +10,7 @@ parser.add_argument("--keyfile", default='', required=True)
 parser.add_argument("--ownerpassword", default='')
 parser.add_argument("--password", default='')
 parser.add_argument("--pcr", default='')
+parser.add_argument("--enc_key_name", default='')
 
 parser.add_argument("--certificate_path",
                     default="certs/azclient.crt", required=True)
@@ -23,45 +24,45 @@ parser.add_argument("--container", default="mineral-minutia", required=False)
 
 args = parser.parse_args()
 
+policy_impl = None
 
-if args.pcr == '':
-    pc = AzureCredentials(
-        tcti=args.tcti,
-        keyfile=args.keyfile,
-        ownerpassword=args.ownerpassword,
-        password=args.password,
-        policy_impl=None,
+# if your pcr value bound to is:
+# $ tpm2_pcrread sha256:23
+#    sha256:
+#     23: 0x0000000000000000000000000000000000000000000000000000000000000000
 
-        tenant_id=args.tenant_id,
-        client_id=args.client_id,
-        certificate_path=args.certificate_path)
-else:
-    pol = {
-        "description": "Policy PCR {} TPM2_ALG_SHA256".format(args.pcr),
-        "policy": [
-            {
-                "type": "POLICYPCR",
-                "pcrs": [
+pol = {
+    "description": "Policy PCR {} TPM2_ALG_SHA256".format(args.pcr),
+    "policy": [
+        {
+            "type": "POLICYPCR",
+            "pcrs": [
                     {
                         "pcr": args.pcr,
                         "hashAlg": "TPM2_ALG_SHA256",
                         "digest": "0000000000000000000000000000000000000000000000000000000000000000"
                     }
-                ]
-            }
-        ]
-    }
-    pc = AzureCredentials(
-        tcti=args.tcti,
-        keyfile=args.keyfile,
-        ownerpassword=args.ownerpassword,
-        password=args.password,
-        policy_impl=PCRPolicy(policy=pol),
+            ]
+        }
+    ]
+}
 
-        tenant_id=args.tenant_id,
-        client_id=args.client_id,
-        certificate_path=args.certificate_path)
-    
+if args.pcr != '' and args.password != '':
+    policy_impl = PCRAuthValuePolicy(policy=pol)
+elif args.pcr != '':
+    policy_impl = PCRPolicy(policy=pol)
+
+pc = AzureCredentials(
+    tcti=args.tcti,
+    keyfile=args.keyfile,
+    ownerpassword=args.ownerpassword,
+    password=args.password,
+    policy_impl=policy_impl,
+    enc_key_name=args.enc_key_name,
+      
+    tenant_id=args.tenant_id,
+    client_id=args.client_id,
+    certificate_path=args.certificate_path)
 
 blob_service_client = BlobServiceClient(
     account_url="https://{}.blob.core.windows.net".format(args.storageaccount),

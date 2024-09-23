@@ -129,6 +129,7 @@ for blob in blob_list:
 | **`ownerpassword`** | Password for the OWNER hierarchy used by H2 template:  (optional; default: ``) |
 | **`password`** | Password for the Key (userAuth):  (optional; default: ``) |
 | **`policy_impl`** | Concrete implementation class for Policy:  (optional; default: ``) |
+| **`enc_key_name`** | Hex "name" for the TPM key to use for session encryption:  (optional; default: ``) |
 
 ##### **GCPCredentials**
 
@@ -225,73 +226,8 @@ For this implementation, each key's parent is defined using the standard [H2 TPM
 
 The example in this repo converts the TPM public/private blobs to PEM format using python.   As mentioned, you can also directly use [tpm2genkey](https://github.com/salrashid123/tpm2genkey?tab=readme-ov-file#convert-tpm2b_public-tpm2b_private-with-tpmhtpermanent-h2-template----pem) or for simple keys [tpm2tss-genkey](https://github.com/tpm2-software/tpm2-tss-engine/blob/master/man/tpm2tss-genkey.1.md)
 
-##### Password Auth
 
-If you want to provide a passphrase to use the TPM based key, you can setup userAuth based access.  To skip password based auth, omit the `-p $KEY_PASSWORD` option during tpm key generation and `--keyPassword=` option while converting to set no auth on the keyfile 
-
-```bash
-export TPM2TOOLS_TCTI="swtpm:port=2321"  # for real tpm use device:/dev/tpmrm0
-export KEY_PASSWORD=passwd
-
-cd /tmp/
-### create H2 template
-printf '\x00\x00' > unique.dat
-tpm2_createprimary -C o -G ecc  -g sha256 \
-    -c primary.ctx \
-    -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
-
-
-# import the key, note we're setting the password.  
-## Each provider has a different way to get this rsa private key; see examples below
-tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
-   -g sha256 -i rsakey.pem -u rsa.pub -r rsa.prv -p $KEY_PASSWORD
-
-tpm2_load -C primary.ctx -u  rsa.pub -r  rsa.prv -c  rsa.ctx 
-
-tpm2_readpublic -c  rsa.ctx  -o  rsapub.pem -f PEM -Q 
-cat  rsapub.pem
-
-## convert pub/priv blobs to PEM (remember to specify the full path --public --private and --out)
-cd util/
-python3 load.py --public=rsa.pub \
-   --private=rsa.prv --out=rsatpm.pem \
-   --keyPassword=$KEY_PASSWORD # --tcti=$TPM2TOOLS_TCTI
-```
-
-##### PCR Policy
-
-To create a key with a PCR policy (i.,e a policy which enforces the key can only be used if certain PCR values exist)
-
-```bash
-export TPM2TOOLS_TCTI="swtpm:port=2321" # for real tpm use device:/dev/tpmrm0
-export PCR=23
-export HASH=sha256
-export PCRBANK=$HASH:$PCR
-
-cd /tmp/
-printf '\x00\x00' > unique.dat
-tpm2_createprimary -C o -G ecc  -g sha256 \
-    -c primary.ctx \
-    -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
-
-## set a pcr policy trial session and import the key
-tpm2_startauthsession -S session.dat
-tpm2_policypcr -S session.dat -l "$PCRBANK"  -L policy.dat
-tpm2_flushcontext session.dat
-
-tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
-   -g sha256 -i rsakey.pem -u rsa.pub -r rsa.prv -L policy.dat
-
-tpm2_load -C primary.ctx -u rsa.pub -r rsa.prv -c .ctx 
-
-tpm2_readpublic -c rsa.ctx  -o rsapub.pem -f PEM -Q 
-cat rsapub.pem
-
-## convert pub/priv to PEM
-cd util/
-python3 load.py  --public=rsa.pub \
- --private=rsa.prv --out=rsatpm.pem # --tcti=$TPM2TOOLS_TCTI
-```
+For details on how to import an RSA or HMAC key into the TPM see [KeyImport](#keyimport)
 
 #### Setup - GCP
 
@@ -326,15 +262,21 @@ cd example/
 pip3 install -r requirements-gcp.txt
 
 ### Password
-python3 main_gcp.py --keyfile=rsatpm.pem \
+python3 main_gcp.py --keyfile=rsa_auth.pem \
   --email=$SERVICE_ACCOUNT_EMAIL --project_id=$PROJECT_ID \
    --password=$KEY_PASSWORD --tcti=$TPM2TOOLS_TCTI
 
 ### PCR
 export PCR=23
-python3 main_gcp.py --keyfile=rsatpm.pem \
+python3 main_gcp.py --keyfile=rsa_pcr.pem \
  --email=$SERVICE_ACCOUNT_EMAIL --project_id=$PROJECT_ID \
   --pcr=$PCR --tcti=$TPM2TOOLS_TCTI
+
+### PCR and password
+export PCR=23
+python3 main_gcp.py --keyfile=rsa_pcr_auth.pem \
+ --email=$SERVICE_ACCOUNT_EMAIL --project_id=$PROJECT_ID \
+  --pcr=$PCR --password=$KEY_PASSWORD --tcti=$TPM2TOOLS_TCTI  
 ```
 
 How it works:
@@ -392,7 +334,7 @@ python3 main_aws.py --public_certificate_file=$CERTIFICATE \
    --region=$REGION  --trust_anchor_arn=$TRUST_ANCHOR_ARN \
      --role_arn=$ROLE_ARN \
           --profile_arn=$PROFILE_ARN \
-            --keyfile=rsatpm.pem \
+            --keyfile=rsa_auth.pem \
             --password=$KEY_PASSWORD \
             --tcti=$TPM2TOOLS_TCTI
 
@@ -402,7 +344,7 @@ python3 main_aws.py --public_certificate_file=$CERTIFICATE \
    --region=$REGION  --trust_anchor_arn=$TRUST_ANCHOR_ARN \
      --role_arn=$ROLE_ARN \
           --profile_arn=$PROFILE_ARN \
-            --keyfile=rsatpm.pem \
+            --keyfile=rsa_pcr.pem \
             --pcr=$PCR \
             --tcti=$TPM2TOOLS_TCTI
 ```
@@ -423,6 +365,7 @@ This repo includes an example setup and to use this, you need your `AWS_ACCESS_K
 export AWS_ACCESS_KEY_ID=recacted
 export AWS_SECRET_ACCESS_KEY=redacted
 export TPM2TOOLS_TCTI="swtpm:port=2321"
+export KEY_PASSWORD=passwd
 
 ## add the AWS4 prefix to the key per the signing protocol
 export secret="AWS4$AWS_SECRET_ACCESS_KEY"
@@ -434,17 +377,17 @@ tpm2_createprimary -C o -G ecc  -g sha256  -c primary.ctx -a "fixedtpm|fixedpare
 
 # embed the hmac key
 tpm2_import -C primary.ctx -G hmac -i hmac.key -u hmac.pub -r hmac.prv  -p $KEY_PASSWORD
-
 tpm2_load -C primary.ctx -u hmac.pub -r hmac.prv -c hmac.ctx 
 
 ### now convert the pub/priv to a PEM
 cd util/
-python3 load.py --public=hmac.pub --private=hmac.prv --out=hmac.pem --keyPassword=$KEY_PASSWORD # --tcti=$TPM2TOOLS_TCTI
+python3 load.py --public=hmac.pub --private=hmac.prv --out=hmac.pem --keyPassword=$KEY_PASSWORD  --tcti=$TPM2TOOLS_TCTI
 ```
 
 To use this, you need to specify the key file and the `AWS_ACCESS_KEY_ID`
 ```bash
 export REGION="us-east-1"
+pip3 install -r requirements-aws.txt
 
 ## for getsessiontoken
 python3 main_aws_hmac.py --get_session_token=False \
@@ -498,20 +441,140 @@ curl -s --oauth2-bearer "$AZURE_TOKEN"  -H 'x-ms-version: 2017-11-09'  \
 pip3 install -r requirements-azure.txt
 
 ### Password
-python3 main_azure.py --keyfile=rsatpm.pem \
+python3 main_azure.py --keyfile=rsa_auth.pem \
    --certificate_path=$CERTIFICATE_PATH \
     --client_id=$CLIENT_ID  --tenant_id=$TENANT_ID \
     --password=$KEY_PASSWORD --tcti=$TPM2TOOLS_TCTI
 
 ### PCR
 export PCR=23
-python3 main_azure.py --keyfile=rsatpm.pem \
+python3 main_azure.py --keyfile=rsa_pcr.pem \
    --certificate_path=$CERTIFICATE_PATH \
     --client_id=$CLIENT_ID  --tenant_id=$TENANT_ID \
     --pcr=$PCR --tcti=$TPM2TOOLS_TCTI
 ```
 
 Currently ONLY RSASSA  keys are supported (its easy enough to support others, TODO)
+
+
+#### KeyImport
+
+The following details how you can import an RSA PEM key file into a given TPM.
+
+The first stage loads the PEM and saves it as `(TPM2B_PUBLIC,TPM2B_PRIVATE)` binary structures
+
+You would then convert it those to TPM PEM formatted files (`-----BEGIN TSS2 PRIVATE KEY-----`)
+
+First step is to create an "H2 Template" primary key:
+
+```bash
+export TPM2TOOLS_TCTI="swtpm:port=2321"  # for real tpm use device:/dev/tpmrm0
+cd /tmp/
+### create H2 template
+printf '\x00\x00' > unique.dat
+tpm2_createprimary -C o -G ecc  -g sha256 \
+    -c primary.ctx \
+    -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
+```
+
+Then depending on what constraints you have on the key:
+
+##### No Auth
+
+For a plain key
+
+```bash
+# import the key, note we're setting the password.  
+## Each provider has a different way to get this rsa private key; see examples below
+tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
+   -g sha256 -i rsakey.pem -u rsa.pub -r rsa.prv
+
+tpm2_load -C primary.ctx -u  rsa.pub -r  rsa.prv -c  rsa.ctx 
+
+## convert pub/priv blobs to PEM (remember to specify the full path --public --private and --out)
+### alternatives to this is:  https://github.com/tpm2-software/tpm2-tss-engine/blob/master/man/tpm2tss-genkey.1.md
+cd util/
+python3 load.py --public=rsa.pub \
+   --private=rsa.prv --out=rsa_auth.pem --tcti=$TPM2TOOLS_TCTI
+```
+
+##### Password Auth
+
+If you want to provide a passphrase to use the TPM based key, you can setup userAuth based access.  To skip password based auth, omit the `-p $KEY_PASSWORD` option during tpm key generation and `--keyPassword=` option while converting to set no auth on the keyfile 
+
+```bash
+# import the key, note we're setting the password.  
+## Each provider has a different way to get this rsa private key; see examples below
+tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
+   -g sha256 -i rsakey.pem -u rsa.pub -r rsa.prv -p $KEY_PASSWORD
+
+tpm2_load -C primary.ctx -u  rsa.pub -r  rsa.prv -c  rsa.ctx 
+
+## convert pub/priv blobs to PEM (remember to specify the full path --public --private and --out)
+### alternatives to this is:  https://github.com/tpm2-software/tpm2-tss-engine/blob/master/man/tpm2tss-genkey.1.md
+cd util/
+python3 load.py --public=rsa.pub \
+   --private=rsa.prv --out=rsa_auth.pem \
+   --keyPassword=$KEY_PASSWORD --tcti=$TPM2TOOLS_TCTI
+```
+
+##### PCR Policy
+
+To create a key with a PCR policy (i.,e a policy which enforces the key can only be used if certain PCR values exist)
+
+```bash
+export PCR=23
+export HASH=sha256
+export PCRBANK=$HASH:$PCR
+
+## set a pcr policy trial session and import the key
+tpm2_startauthsession -S session.dat
+tpm2_pcrread "$PCRBANK" -o pcr23_val.bin
+tpm2_policypcr -S session.dat -l "$PCRBANK"  -L policy.dat -f pcr23_val.bin
+tpm2_flushcontext session.dat
+
+tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
+   -g sha256 -i rsakey.pem -u rsa.pub -r rsa.prv -L policy.dat
+
+tpm2_load -C primary.ctx -u rsa.pub -r rsa.prv -c .ctx 
+
+tpm2_readpublic -c rsa.ctx  -o rsapub.pem -f PEM -Q 
+cat rsapub.pem
+
+## convert pub/priv to PEM
+cd util/
+python3 load.py  --public=rsa.pub \
+ --private=rsa.prv --out=rsa_pcr.pem  --tcti=$TPM2TOOLS_TCTI
+```
+
+##### PCR and PolicyAuthValue
+
+To create a key with a PCR policy and a password, use `tpm2_policyauthvalue`
+
+```bash
+export PCR=23
+export HASH=sha256
+export PCRBANK=$HASH:$PCR
+export KEY_PASSWORD=passwd
+
+tpm2_startauthsession -S session.dat
+tpm2_pcrread sha256:23 -o pcr23_val.bin
+tpm2_policypcr -S session.dat -l sha256:23  -L policy.dat -f pcr23_val.bin
+tpm2_policyauthvalue -S session.dat -L policy.dat
+tpm2_flushcontext session.dat
+tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
+
+tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
+   -g sha256  -i rsakey.pem \
+   -u rsa.pub -r rsa.prv -L policy.dat  -p $KEY_PASSWORD 
+
+tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l   
+
+## convert pub/priv to PEM
+cd util/
+python3 load.py  --public=/tmp/rsa.pub  --private=/tmp/rsa.prv \
+ --out=rsa_pcr_auth.pem --tcti=$TPM2TOOLS_TCTI --keyPassword=$KEY_PASSWORD
+```
 
 #### Custom Policy Implementation
 
@@ -639,10 +702,24 @@ As a side note, although this is a private key in PEM format, this is NOT usable
 
 #### Session Encryption
 
-TODO:  Enable [TPM Bus encryption](https://trustedcomputinggroup.org/wp-content/uploads/TCG_CPU_TPM_Bus_Protection_Guidance_Passive_Attack_Mitigation_8May23-3.pdf).
+To Enable [TPM Bus encryption](https://trustedcomputinggroup.org/wp-content/uploads/TCG_CPU_TPM_Bus_Protection_Guidance_Passive_Attack_Mitigation_8May23-3.pdf), you need to pass in the hex formatted 'name' of a trusted key you know thats on the TPM  shown [here](https://github.com/salrashid123/tpm2/blob/master/pytss/README.md).
 
-for this, we'd use a well known key handle like the endorsement key shown [here](https://github.com/salrashid123/tpm2/blob/master/pytss/esapi_session_encryption.py).  The EKRSA itself could be verified by comparing the derived 'name' at runtime and comparing it with the hex expected name provided by the user (similar to [this](https://github.com/salrashid123/gcp-adc-tpm?tab=readme-ov-file#encrypted-tpm-sessions)
+For example, the following prints the EKRSA Public "name" on the tpm.  
 
+```bash
+tpm2_createek -c primary.ctx -G rsa -u ek.pub -Q
+tpm2_readpublic -c primary.ctx -o ek.pem -n name.bin -f pem -Q
+xxd -p -c 100 name.bin 
+  000bc947113c66100e860949eaa17bd5aa2a66dac54b55816e459669ef3975bbc91e
+```
+
+so pass that in as
+
+```bash
+--enc_key_name=000bc947113c66100e860949eaa17bd5aa2a66dac54b55816e459669ef3975bbc91e
+```
+
+If you don't provide the name, the EKPub will get read in live and used as-is
 
 #### Local Build
 

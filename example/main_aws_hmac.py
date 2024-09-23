@@ -1,6 +1,6 @@
 import boto3
 from cloud_auth_tpm.aws.awshmaccredentials import AWSHMACCredentials
-from cloud_auth_tpm.policy import PCRPolicy
+from cloud_auth_tpm.policy import PCRPolicy, PCRAuthValuePolicy
 
 import argparse
 
@@ -10,6 +10,7 @@ parser.add_argument("--keyfile", default='', required=True)
 parser.add_argument("--ownerpassword", default='')
 parser.add_argument("--password", default='')
 parser.add_argument("--pcr", default='')
+parser.add_argument("--enc_key_name", default='')
 
 parser.add_argument("--aws_access_key_id", default='', required=True)
 parser.add_argument("--region", default="us-east-1", required=True)
@@ -23,55 +24,51 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if args.pcr == '':
+policy_impl = None
 
-    pc = AWSHMACCredentials(
-        tcti=args.tcti,
-        keyfile=args.keyfile,
-        ownerpassword=args.ownerpassword,
-        password=args.password,
-        policy_impl=None,
+# if your pcr value bound to is:
+# $ tpm2_pcrread sha256:23
+#    sha256:
+#     23: 0x0000000000000000000000000000000000000000000000000000000000000000
 
-        access_key=args.aws_access_key_id,
-        region=args.region,
-        duration_seconds=3600,
-        role_session_name=args.role_session_name,
-        assume_role_arn=args.assume_role_arn,
-
-        get_session_token=args.get_session_token
-)
-
-else:
-    pol = {
-        "description": "Policy PCR {} TPM2_ALG_SHA256".format(args.pcr),
-        "policy": [
-            {
-                "type": "POLICYPCR",
-                "pcrs": [
+pol = {
+    "description": "Policy PCR {} TPM2_ALG_SHA256".format(args.pcr),
+    "policy": [
+        {
+            "type": "POLICYPCR",
+            "pcrs": [
                     {
                         "pcr": args.pcr,
                         "hashAlg": "TPM2_ALG_SHA256",
                         "digest": "0000000000000000000000000000000000000000000000000000000000000000"
                     }
-                ]
-            }
-        ]
-    }
-    pc = AWSHMACCredentials(
-        tcti=args.tcti,
-        keyfile=args.keyfile,
-        ownerpassword=args.ownerpassword,
-        password=args.password,
-        policy_impl=PCRPolicy(policy=pol),
+            ]
+        }
+    ]
+}
 
-        access_key=args.aws_access_key_id,
-        region=args.region,
-        duration_seconds=3600,
-        role_session_name=args.role_session_name,
-        assume_role_arn=args.assume_role_arn,
+if args.pcr != '' and args.password != '':
+    policy_impl = PCRAuthValuePolicy(policy=pol)
+elif args.pcr != '':
+    policy_impl = PCRPolicy(policy=pol)
 
-        get_session_token=args.get_session_token)
 
+pc = AWSHMACCredentials(
+    tcti=args.tcti,
+    keyfile=args.keyfile,
+    ownerpassword=args.ownerpassword,
+    password=args.password,
+    policy_impl=policy_impl,
+    enc_key_name=args.enc_key_name,
+
+    access_key=args.aws_access_key_id,
+    region=args.region,
+    duration_seconds=3600,
+    role_session_name=args.role_session_name,
+    assume_role_arn=args.assume_role_arn,
+
+    get_session_token=args.get_session_token
+)
 
 session = pc.get_session()
 

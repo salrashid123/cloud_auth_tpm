@@ -31,7 +31,8 @@ class AWSCredentials(BaseCredential, CredentialProvider):
         ownerpassword=None,
         password=None,
         policy_impl=None,
-
+        enc_key_name=None,
+    
         public_certificate_file=None,
         region=None,
         duration_seconds=3600,
@@ -45,7 +46,7 @@ class AWSCredentials(BaseCredential, CredentialProvider):
         **kwargs: Any
     ):
         BaseCredential.__init__(self, tcti=tcti, keyfile=keyfile,
-                                ownerpassword=ownerpassword, password=password, policy_impl=policy_impl)
+                                ownerpassword=ownerpassword, password=password, policy_impl=policy_impl,enc_key_name=enc_key_name)
         CredentialProvider.__init__(self)
 
         self._public_certificate_file = public_certificate_file

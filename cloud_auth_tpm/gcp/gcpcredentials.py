@@ -23,6 +23,7 @@ class GCPCredentials(BaseCredential,credentials.CredentialsWithQuotaProject):
         ownerpassword=None,
         password=None,
         policy_impl=None,
+        enc_key_name=None,
 
         email=None,
         scopes="https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email",
@@ -31,7 +32,7 @@ class GCPCredentials(BaseCredential,credentials.CredentialsWithQuotaProject):
     ):
 
 
-        BaseCredential.__init__(self,tcti=tcti,keyfile=keyfile,ownerpassword=ownerpassword,password=password,policy_impl=policy_impl)
+        BaseCredential.__init__(self,tcti=tcti,keyfile=keyfile,ownerpassword=ownerpassword,password=password,policy_impl=policy_impl,enc_key_name=enc_key_name)
         credentials.CredentialsWithQuotaProject.__init__(self)
 
         self._email = email

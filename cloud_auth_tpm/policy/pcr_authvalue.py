@@ -2,8 +2,7 @@ from tpm2_pytss import *
 
 from cloud_auth_tpm.policy.policy import PolicyEval
 
-
-class PCRPolicy(PolicyEval):
+class PCRAuthValuePolicy(PolicyEval):
 
     DEFAULT_POLICY = {
         "description": "Default Policy",
@@ -42,9 +41,9 @@ class PCRPolicy(PolicyEval):
         out_dig = TPML_DIGEST(digests)
         return (out_sel, out_dig)
 
-    def policy_callback(self, ectx,handle):
+    def policy_callback(self, ectx: ESAPI, handle: ESYS_TR):
         sess = ectx.start_auth_session(
-            tpm_key=handle,
+            tpm_key=handle, #ESYS_TR.NONE,
             bind=ESYS_TR.NONE,
             session_type=TPM2_SE.POLICY,
             symmetric=TPMT_SYM_DEF(
@@ -62,8 +61,9 @@ class PCRPolicy(PolicyEval):
                 cjb = p.get_calculated_json()
                 json_object = json.loads(cjb)
                 print(json.dumps(json_object, indent=4))
-            p.execute(ectx, sess)   
+            p.execute(ectx, sess)
+        ectx.policy_auth_value(sess)   
         ectx.trsess_set_attributes(
-            sess, (TPMA_SESSION.DECRYPT | TPMA_SESSION.ENCRYPT )
-        )                                    
+            sess, ( TPMA_SESSION.ENCRYPT | TPMA_SESSION.DECRYPT)
+        )
         return sess
