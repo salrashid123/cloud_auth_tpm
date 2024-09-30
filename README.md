@@ -589,7 +589,7 @@ The way to do this is to implement an abstract class:
 from cloud_auth_tpm.policy.policy import PolicyEval
 ```
 
-which requires you to pass in a policy json on init and then impelment whatever you need to do in `policy_callback(ectx)`, eg:
+which requires you to pass in a policy json on init and then impelment whatever you need to do in `policy_callback(ectx: ESAPI, handle: ESYS_TR):`, eg:
 
 
 ```python
@@ -597,13 +597,15 @@ class PolicyEval(object, metaclass=ABCMeta):
     def __init__(self, policy: dict[str, any] , debug: bool):
 
     @abstractmethod
-    def policy_callback(self, ectx: ESAPI):
+    def policy_callback(self, ectx: ESAPI, handle: ESYS_TR):
         pass
 ```
 
-so for the built-in policy see [cloud_auth_tpm/policy/pcr.py](cloud_auth_tpm/policy/pcr.py).
+where `ectx` is just the TPM context and `handle` is what key used for session encryption.
 
-Then to use it, fist import the policy (in this example, its the default `PCRPolicy`), supply it with the json format of the policy and specify it when invoking credentials.
+For a built-in policy see [cloud_auth_tpm/policy/pcr.py](cloud_auth_tpm/policy/pcr.py).
+
+To use a custom policy, fist import a class (in this example, its the default `PCRPolicy`), supply it with the json format of the policy and specify it when invoking credentials.
 
 eg, with 
 
