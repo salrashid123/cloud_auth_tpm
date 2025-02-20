@@ -229,6 +229,25 @@ The example in this repo converts the TPM public/private blobs to PEM format usi
 
 For details on how to import an RSA or HMAC key into the TPM see [KeyImport](#keyimport)
 
+#### Setup Software TPM
+
+The following demo uses a `swtpm`.  If you would like to use a real TPM, specify the `TPM2TOOLS_TCTI=` variable to actual TPM (eg, `/dev/tpmrm0`)
+
+```bash
+rm -rf /tmp/myvtpm && mkdir /tmp/myvtpm
+sudo swtpm_setup --tpmstate /tmp/myvtpm --tpm2 --create-ek-cert 
+sudo swtpm socket --tpmstate dir=/tmp/myvtpm --tpm2 --server type=tcp,port=2321 --ctrl type=tcp,port=2322 --flags not-need-init,startup-clear  --log level=5
+```
+
+Once its setup, you can export the following environment variables and use this with `tpm2_tools`
+
+```bash
+export TPM2TOOLS_TCTI="swtpm:port=2321"
+export TPM2OPENSSL_TCTI="swtpm:port=2321"
+
+tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
+```
+
 #### Setup - GCP
 
 This is an extension of GCP [google-auth-python](https://github.com/googleapis/google-auth-library-python) specifically intended to use service account credentials which are embedded inside a `Trusted Platform Module (TPM)`.
@@ -253,13 +272,41 @@ export SERVICE_ACCOUNT_EMAIL=`cat jwt-access-svc-account.json | jq -r '.client_e
 cat jwt-access-svc-account.json | jq -r '.private_key' > /tmp/rsakey.pem
 ```
 
-At this point, you need to embed the _raw_ RSA key at `/tmp/rsakey.pem` into the TPM.   See the section above in using the `util/load.py` script.
+Import `/tmp/rsakey.pem` into the TPM following the [KeyImport](#keyimport) section
+
+At this point, you need to embed the _raw_ RSA key at `/tmp/rsakey.pem` into the TPM. 
+
+eg, for a software TPM and GCP
+
+```bash
+export TPM2TOOLS_TCTI="swtpm:port=2321"  # for real tpm use device:/dev/tpmrm0
+
+### create H2 template
+printf '\x00\x00' > unique.dat
+tpm2_createprimary -C o -G ecc  -g sha256 \
+    -c primary.ctx \
+    -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
+
+tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
+   -g sha256 -i rsakey.pem -u rsa.pub -r rsa.prv
+
+tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
+tpm2_load -C primary.ctx -u  rsa.pub -r  rsa.prv -c  rsa.ctx 
+
+tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_auth.pem
+# tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
+```
 
 Once the key is embedded into the TPM, you can discard the raw key since the TPM based version in PEM format is now at `rsakey.pem` (for example) which you can reference it directly for access:
 
 ```bash
 cd example/
 pip3 install -r requirements-gcp.txt
+
+### no password
+python3 main_gcp.py --keyfile=rsa_auth.pem \
+  --email=$SERVICE_ACCOUNT_EMAIL --project_id=$PROJECT_ID \
+   --tcti=$TPM2TOOLS_TCTI
 
 ### Password
 python3 main_gcp.py --keyfile=rsa_auth.pem \
@@ -316,7 +363,7 @@ The specific certificate CA and private key is the same as described in the samp
 
 * [AWA RolesAnywhere Signer](https://github.com/salrashid123/aws_rolesanywhere_signer)
 
-When you setup RolesAnywhere, note down the ARN for the `TrustAnchorArn`, `ProfileArn` and `RoleArn` as well as the `region`.  Ideally, the role has `AmazonS3ReadOnlyAccess` to list buckets.  If you want to use the script in this repo to embed the cert see the section above in using the `util/load.py` script
+When you setup RolesAnywhere, note down the ARN for the `TrustAnchorArn`, `ProfileArn` and `RoleArn` as well as the `region`.  Ideally, the role has `AmazonS3ReadOnlyAccess` to list buckets.
 
 Then attempt to use the credentials and specify the specific ARN values
 
@@ -379,9 +426,7 @@ tpm2_createprimary -C o -G ecc  -g sha256  -c primary.ctx -a "fixedtpm|fixedpare
 tpm2_import -C primary.ctx -G hmac -i hmac.key -u hmac.pub -r hmac.prv  -p $KEY_PASSWORD
 tpm2_load -C primary.ctx -u hmac.pub -r hmac.prv -c hmac.ctx 
 
-### now convert the pub/priv to a PEM
-cd util/
-python3 load.py --public=hmac.pub --private=hmac.prv --out=hmac.pem --keyPassword=$KEY_PASSWORD  --tcti=$TPM2TOOLS_TCTI
+tpm2_encodeobject -C primary.ctx -u hmac.pub -r hmac.prv -o hmac.pem -p $KEY_PASSWORD
 ```
 
 To use this, you need to specify the key file and the `AWS_ACCESS_KEY_ID`
@@ -469,7 +514,6 @@ First step is to create an "H2 Template" primary key:
 
 ```bash
 export TPM2TOOLS_TCTI="swtpm:port=2321"  # for real tpm use device:/dev/tpmrm0
-cd /tmp/
 ### create H2 template
 printf '\x00\x00' > unique.dat
 tpm2_createprimary -C o -G ecc  -g sha256 \
@@ -484,18 +528,15 @@ Then depending on what constraints you have on the key:
 For a plain key
 
 ```bash
-# import the key, note we're setting the password.  
+# import the key, note we're not setting the password.  
 ## Each provider has a different way to get this rsa private key; see examples below
 tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
    -g sha256 -i rsakey.pem -u rsa.pub -r rsa.prv
 
 tpm2_load -C primary.ctx -u  rsa.pub -r  rsa.prv -c  rsa.ctx 
+tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
 
-## convert pub/priv blobs to PEM (remember to specify the full path --public --private and --out)
-### alternatives to this is:  https://github.com/tpm2-software/tpm2-tss-engine/blob/master/man/tpm2tss-genkey.1.md
-cd util/
-python3 load.py --public=rsa.pub \
-   --private=rsa.prv --out=rsa_auth.pem --tcti=$TPM2TOOLS_TCTI
+tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_auth.pem
 ```
 
 ##### Password Auth
@@ -509,13 +550,9 @@ tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
    -g sha256 -i rsakey.pem -u rsa.pub -r rsa.prv -p $KEY_PASSWORD
 
 tpm2_load -C primary.ctx -u  rsa.pub -r  rsa.prv -c  rsa.ctx 
+tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
 
-## convert pub/priv blobs to PEM (remember to specify the full path --public --private and --out)
-### alternatives to this is:  https://github.com/tpm2-software/tpm2-tss-engine/blob/master/man/tpm2tss-genkey.1.md
-cd util/
-python3 load.py --public=rsa.pub \
-   --private=rsa.prv --out=rsa_auth.pem \
-   --keyPassword=$KEY_PASSWORD --tcti=$TPM2TOOLS_TCTI
+tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_auth.pem -p $KEY_PASSWORD
 ```
 
 ##### PCR Policy
@@ -537,14 +574,12 @@ tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
    -g sha256 -i rsakey.pem -u rsa.pub -r rsa.prv -L policy.dat
 
 tpm2_load -C primary.ctx -u rsa.pub -r rsa.prv -c .ctx 
+tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
 
 tpm2_readpublic -c rsa.ctx  -o rsapub.pem -f PEM -Q 
 cat rsapub.pem
 
-## convert pub/priv to PEM
-cd util/
-python3 load.py  --public=rsa.pub \
- --private=rsa.prv --out=rsa_pcr.pem  --tcti=$TPM2TOOLS_TCTI
+tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_pcr.pem
 ```
 
 ##### PCR and PolicyAuthValue
@@ -570,10 +605,7 @@ tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
 
 tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l   
 
-## convert pub/priv to PEM
-cd util/
-python3 load.py  --public=/tmp/rsa.pub  --private=/tmp/rsa.prv \
- --out=rsa_pcr_auth.pem --tcti=$TPM2TOOLS_TCTI --keyPassword=$KEY_PASSWORD
+tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_pcr_auth.pem -p $KEY_PASSWORD
 ```
 
 #### Custom Policy Implementation
@@ -751,22 +783,3 @@ pip3 install ../
 # python3 -m twine upload  dist/*
 ```
 
-#### Software TPM
-
-If you want to test locally, you can use a software TPM `swtpm`:
-
-```bash
-rm -rf /tmp/myvtpm && mkdir /tmp/myvtpm
-sudo swtpm_setup --tpmstate /tmp/myvtpm --tpm2 --create-ek-cert 
-sudo swtpm socket --tpmstate dir=/tmp/myvtpm --tpm2 --server type=tcp,port=2321 --ctrl type=tcp,port=2322 --flags not-need-init,startup-clear  --log level=5
-```
-
-Once its setup, you can export the following environment variables and use this with `tpm2_tools`
-
-```bash
-export TPM2TOOLS_TCTI="swtpm:port=2321"
-export TPM2OPENSSL_TCTI="swtpm:port=2321"
-
-## swtpm don't have resource manager so you'll see "out of memory for object contexts" often...to clear the contexts:
-tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
-```

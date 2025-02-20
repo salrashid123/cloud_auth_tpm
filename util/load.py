@@ -20,6 +20,16 @@ https://github.com/tpm2-software/tpm2-tss-engine/blob/master/man/tpm2tss-genkey.
 or
 https://github.com/salrashid123/tpm2genkey?tab=readme-ov-file#convert-pem----tpm2b_public-tpm2b_private
 
+
+### using tpm2_tools:
+### create H2 template
+printf '\x00\x00' > unique.dat
+tpm2_createprimary -C o -G ecc  -g sha256 \
+    -c primary.ctx \
+    -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
+
+tpm2_import -C primary.ctx  -G rsa2048:rsassa:null -g sha256 -i rsakey.pem -u key.pub -r key.prv
+tpm2_encodeobject -C primary.ctx -u key.pub -r key.prv -o private.pem
 '''
 
 parser = argparse.ArgumentParser(
