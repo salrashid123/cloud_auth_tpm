@@ -100,7 +100,8 @@ class AWSCredentials(BaseCredential, CredentialProvider):
                 self._trust_anchor_arn)
             request_parameters += '}'
 
-            t = datetime.datetime.now(datetime.UTC)
+            #t = datetime.datetime.now(datetime.UTC)
+            t = datetime.datetime.now(datetime.timezone.utc)
             amz_date = t.strftime('%Y%m%dT%H%M%SZ')
             # Date w/o time, used in credential scope
             date_stamp = t.strftime('%Y%m%d')
@@ -167,7 +168,7 @@ class AWSCredentials(BaseCredential, CredentialProvider):
                 'access_key': c['accessKeyId'],
                 'secret_key': c['secretAccessKey'],
                 'token': c['sessionToken'],
-                'expiry_time': datetime_object.replace(tzinfo=datetime.UTC).isoformat()
+                'expiry_time': datetime_object.replace(tzinfo=datetime.timezone.utc).isoformat()
             }
             return metadata
         except Exception as e:

@@ -152,7 +152,7 @@ class AWSHMACCredentials(CredentialProvider):
             endpoint = '/'
 
             # Create a datetime object for signing
-            t = datetime.datetime.utcnow()
+            t = datetime.datetime.now(datetime.timezone.utc)
             amzdate = t.strftime('%Y%m%dT%H%M%SZ')
             datestamp = t.strftime('%Y%m%d')
 
@@ -221,14 +221,14 @@ class AWSHMACCredentials(CredentialProvider):
                     raise Exception("invalid response, no AssumeRoleResponse ")
                 c = json_data['AssumeRoleResponse']['AssumeRoleResult']['Credentials']
 
-            datetime_object = datetime.datetime.utcfromtimestamp(
-                int(c['Expiration']))
+            datetime_object = datetime.datetime.fromtimestamp(
+                int(c['Expiration']), tz=datetime.timezone.utc)
 
             metadata = {
                 'access_key': c['AccessKeyId'],
                 'secret_key': c['SecretAccessKey'],
                 'token': c['SessionToken'],
-                'expiry_time': datetime_object.replace(tzinfo=datetime.UTC).isoformat()
+                'expiry_time': datetime_object.replace(tzinfo=datetime.timezone.utc).isoformat()
             }
 
             return metadata

@@ -12,7 +12,7 @@ with io.open(readme_filename, encoding='utf-8') as readme_file:
 
 setuptools.setup(
     name="cloud_auth_tpm",
-    version="0.6.4",
+    version="0.6.5",
     author="Sal Rashid",
     author_email="salrashid123@gmail.com",
     description="Python TPM based Credentials for Cloud Providers",
