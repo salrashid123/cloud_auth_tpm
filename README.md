@@ -1,16 +1,30 @@
 ## Cloud Auth Library using Trusted Platform Module (TPM)
 
-Python library which supports TPM embedded credentials for various cloud providers.
+Python library which supports `TPM` embedded authenticated credentials for various cloud providers.
+
+The supported set of providers and credential types:
+
+* `Google Cloud`
+  - using [Service Account Credentials](https://cloud.google.com/iam/docs/service-account-creds) where the RSA private key is on the TPM
+* `AWS`
+  - using [IAM Roles Anywhere](https://docs.aws.amazon.com/rolesanywhere/latest/userguide/introduction.html) where the RSA private key is on the TPM
+  - using [HMAC Access Keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) where the `AWS_SECRET_ACCESS_KEY` is on the TPM
+* `Azure`
+  - using [Certificate Credentials](https://learn.microsoft.com/en-us/entra/identity-platform/certificate-credentials) where the RSA private key is on the TPM
 
 on python pypi: [https://pypi.org/project/cloud-auth-tpm/](https://pypi.org/project/cloud-auth-tpm/)
 
-> **>>WARNING<<**: This code is not affiliated with or supported by google
+> This code is not affiliated with or supported by google
 
 ---
 
 ### Usage
 
-You need to first embed an RSA key into a TPM thats readable by [python-tss](https://github.com/tpm2-software/tpm2-pytss) or openssl and accessed using [PEM formatted TPM Keys](https://www.hansenpartnership.com/draft-bottomley-tpm2-keys.html).  To do that, see the [Using RSA Keys on TPM](#using-rsa-keys-on-tpm) section for options.
+You need to first embed an RSA key into a TPM thats readable by [python-tss](https://github.com/tpm2-software/tpm2-pytss) or openssl and accessed using [PEM formatted TPM Keys](https://www.hansenpartnership.com/draft-bottomley-tpm2-keys.html).
+
+To do that, see the [Using RSA Keys on TPM](#using-rsa-keys-on-tpm) section for options.
+
+From there, depending on the provider, reference the credential in a standard SDK client:
 
 ##### **GCPCredentials**
 
@@ -175,7 +189,7 @@ for blob in blob_list:
 
 ### Setup
 
-This library uses the [Enhanced Systems API (ESAPI)](https://tpm2-pytss.readthedocs.io/en/latest/esys.html) provided through `tpm2_pytss`.   If you are interested in a branch which uses the `Feature API (FAPI)`, see the [fapi](https://github.com/salrashid123/cloud_auth_tpm/tree/fapi) branch in this repo.
+This library uses the [Enhanced Systems API (ESAPI)](https://tpm2-pytss.readthedocs.io/en/latest/esys.html) provided through `tpm2_pytss`.
 
 You need to first install [tpm2-tss](https://github.com/tpm2-software/tpm2-tss) `version>=4.1.0` (see [issue#596](https://github.com/tpm2-software/tpm2-pytss/issues/596))
 
@@ -189,15 +203,13 @@ python3 -m pip install tpm2-pytss
 
 You can initialize a TPM based RSA key and optional certificate in several ways:
 
-1. create a key on the tpm
-2. import an the raw private key into the TPM
-3. securely transfer a key from on machine to the machine with the TPM and then import
+1. create a key on the TPM and generate an x509  (`tpm2_create`)
+2. import the raw RSA private key into the TPM (`tpm2_import`)
+3. securely transfer a RAW key from one TPM into another (`tpm2_duplicate`)
 
-This example will just cover (2) for simplicity using [tpm2_tools](https://github.com/tpm2-software/tpm2-tools) and the ESAP utility functions in [util/](util).  
+This example will just cover (2) using [tpm2_tools](https://github.com/tpm2-software/tpm2-tools) for simplicity.
 
-For more info, see [oauth2/tpm2tokensource](https://github.com/salrashid123/oauth2?tab=readme-ov-file#usage)
-
-For additional examples on using ESAPI with python to perform operations, see [salrashid123/tpm2/pytss](https://github.com/salrashid123/tpm2/tree/master/pytss)
+For options 1 and 3, see examples [appendix](#set-tpm-based-private-key)
 
 First step is to acquire the private RSA keys for whichever provider you're interested in
 
@@ -224,16 +236,17 @@ Note, you don't have to use `tpm2_tools`: alternatives is to use [ESAPI](https:/
 
 For this implementation, each key's parent is defined using the standard [H2 TPM template for ECC](https://www.hansenpartnership.com/draft-bottomley-tpm2-keys.html).  This allows use of the PEM formatted Keys compatible with `openssl`.
 
-The example in this repo converts the TPM public/private blobs to PEM format using python.   As mentioned, you can also directly use [tpm2genkey](https://github.com/salrashid123/tpm2genkey?tab=readme-ov-file#convert-tpm2b_public-tpm2b_private-with-tpmhtpermanent-h2-template----pem) or for simple keys [tpm2tss-genkey](https://github.com/tpm2-software/tpm2-tss-engine/blob/master/man/tpm2tss-genkey.1.md)
-
 
 For details on how to import an RSA or HMAC key into the TPM see [KeyImport](#keyimport)
 
 #### Setup Software TPM
 
-The following demo uses a `swtpm`.  If you would like to use a real TPM, specify the `TPM2TOOLS_TCTI=` variable to actual TPM (eg, `/dev/tpmrm0`)
+The following demo uses a [swtpm](https://github.com/stefanberger/swtpm). 
+
+Ofcourse if you would like to use a real TPM, skip initializing the `swtpm` and specify the env variables (`TPM2TOOLS_TCTI=`) variable to an actual TPM one (eg, `/dev/tpmrm0`)
 
 ```bash
+## initialize swtpm
 rm -rf /tmp/myvtpm && mkdir /tmp/myvtpm
 sudo swtpm_setup --tpmstate /tmp/myvtpm --tpm2 --create-ek-cert 
 sudo swtpm socket --tpmstate dir=/tmp/myvtpm --tpm2 --server type=tcp,port=2321 --ctrl type=tcp,port=2322 --flags not-need-init,startup-clear  --log level=5
@@ -303,27 +316,9 @@ Once the key is embedded into the TPM, you can discard the raw key since the TPM
 cd example/
 pip3 install -r requirements-gcp.txt
 
-### no password
 python3 main_gcp.py --keyfile=rsa_auth.pem \
   --email=$SERVICE_ACCOUNT_EMAIL --project_id=$PROJECT_ID \
    --tcti=$TPM2TOOLS_TCTI
-
-### Password
-python3 main_gcp.py --keyfile=rsa_auth.pem \
-  --email=$SERVICE_ACCOUNT_EMAIL --project_id=$PROJECT_ID \
-   --password=$KEY_PASSWORD --tcti=$TPM2TOOLS_TCTI
-
-### PCR
-export PCR=23
-python3 main_gcp.py --keyfile=rsa_pcr.pem \
- --email=$SERVICE_ACCOUNT_EMAIL --project_id=$PROJECT_ID \
-  --pcr=$PCR --tcti=$TPM2TOOLS_TCTI
-
-### PCR and password
-export PCR=23
-python3 main_gcp.py --keyfile=rsa_pcr_auth.pem \
- --email=$SERVICE_ACCOUNT_EMAIL --project_id=$PROJECT_ID \
-  --pcr=$PCR --password=$KEY_PASSWORD --tcti=$TPM2TOOLS_TCTI  
 ```
 
 How it works:
@@ -355,6 +350,8 @@ So since we have the RSA key on the TPM, we can use the ESAPI to make it "sign" 
 
 The trusted client RSA or EC key is embedded within a TPM and that is used to sign the RolesAnywhere header values.
 
+For a detailed example, see [AWS SDK CredentialProvider for RolesAnywhere](https://github.com/salrashid123/aws_rolesanywhere_signer?tab=readme-ov-file#setup)
+
 In the example in this repo, we will use a *EXAMPLE* CA and key.  If you follow this setup, you are using the rsa key and CA found in this repo....so  *please* remember to use test resources and promptly delete/disable this.  You can find a sample setup using the link below and in this repo at `example/certs/alice-cert.key`.
 
 Copy `example/certs/alice-cert.key` to `rsakey.pem` and run through the [Using RSA Keys on TPM](#using-rsa-keys-on-tpm) load step
@@ -376,23 +373,11 @@ export PROFILE_ARN="arn:aws:rolesanywhere:us-east-2:291738886522:profile/6f4943f
 
 pip3 install -r requirements-aws.txt
 
-## Password
 python3 main_aws.py --public_certificate_file=$CERTIFICATE \
    --region=$REGION  --trust_anchor_arn=$TRUST_ANCHOR_ARN \
      --role_arn=$ROLE_ARN \
           --profile_arn=$PROFILE_ARN \
             --keyfile=rsa_auth.pem \
-            --password=$KEY_PASSWORD \
-            --tcti=$TPM2TOOLS_TCTI
-
-### PCR
-export PCR=23
-python3 main_aws.py --public_certificate_file=$CERTIFICATE \
-   --region=$REGION  --trust_anchor_arn=$TRUST_ANCHOR_ARN \
-     --role_arn=$ROLE_ARN \
-          --profile_arn=$PROFILE_ARN \
-            --keyfile=rsa_pcr.pem \
-            --pcr=$PCR \
             --tcti=$TPM2TOOLS_TCTI
 ```
 
@@ -408,7 +393,7 @@ AWS supports HMAC based authentication as well. see: [AWS Credentials for Hardwa
 This repo includes an example setup and to use this, you need your `AWS_ACCESS_KEY_ID` `AWS_SECRET_ACCESS_KEY` and embed the secret into the TPM and make it perform the HMAC
 
 ```bash
-### first embed the hmac key
+### first embed the hmac key with an optional password
 export AWS_ACCESS_KEY_ID=recacted
 export AWS_SECRET_ACCESS_KEY=redacted
 export TPM2TOOLS_TCTI="swtpm:port=2321"
@@ -485,18 +470,10 @@ curl -s --oauth2-bearer "$AZURE_TOKEN"  -H 'x-ms-version: 2017-11-09'  \
 
 pip3 install -r requirements-azure.txt
 
-### Password
 python3 main_azure.py --keyfile=rsa_auth.pem \
    --certificate_path=$CERTIFICATE_PATH \
     --client_id=$CLIENT_ID  --tenant_id=$TENANT_ID \
-    --password=$KEY_PASSWORD --tcti=$TPM2TOOLS_TCTI
-
-### PCR
-export PCR=23
-python3 main_azure.py --keyfile=rsa_pcr.pem \
-   --certificate_path=$CERTIFICATE_PATH \
-    --client_id=$CLIENT_ID  --tenant_id=$TENANT_ID \
-    --pcr=$PCR --tcti=$TPM2TOOLS_TCTI
+    --tcti=$TPM2TOOLS_TCTI
 ```
 
 Currently ONLY RSASSA  keys are supported (its easy enough to support others, TODO)
@@ -521,7 +498,7 @@ tpm2_createprimary -C o -G ecc  -g sha256 \
     -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
 ```
 
-Then depending on what constraints you have on the key:
+Then depending on what constraints you want to have on the key:
 
 ##### No Auth
 
@@ -674,6 +651,40 @@ from cloud_auth_tpm.policy import PCRPolicy
                         policy_impl=PCRPolicy(policy=pol),
                         email=args.email)
 ```
+#### Set TPM Based Private Key 
+
+The following outlines the various options to embed an RSA or HMAC key into a TPM
+
+##### 1 Create Key on TPM and use Openssl to generate CSR
+
+The idea is the the system with the TPM creates an RSA key on its TPM and then issues a CSR against it
+
+Then a remote system with a CA will issue an x509 against it (presumably [attestation](https://github.com/salrashid123/go_tpm_remote_attestation) has already been done).
+
+For a step by step anlog on how to do this, see [mTLS with TPM bound private key](https://github.com/salrashid123/go_tpm_https_embed?tab=readme-ov-file#appendix)
+
+
+##### 2 Import external RSA Key to TPM
+
+This is the default flow in this repo re an external RSA key is directly imported into the TPM.
+
+```bash
+printf '\x00\x00' > unique.dat
+tpm2_createprimary -C o -G ecc  -g sha256 \
+   -c primary.ctx -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
+
+tpm2_create -G rsa2048:rsassa:null -g sha256 -u key.pub -r key.priv -C primary.ctx
+tpm2_load -C primary.ctx -u key.pub -r key.priv -c key.ctx
+tpm2_encodeobject -C primary.ctx -u key.pub -r key.priv -o rsa_tpm.pem
+```
+
+##### 3  Duplicate and Transfer RSA or HMAC key
+
+With this flow, you can generate an RSA key on one system and security transfer it to another such that only the target TPM can load it.
+
+- `RSA`: [Duplicate and transfer using endorsement key](https://github.com/salrashid123/tpm2/tree/master/tpm2_duplicate#duplicate-and-transfer-using-endorsement-key)
+
+- `HMAC`: [Duplicate an externally loaded HMAC key](https://github.com/salrashid123/tpm2/tree/master/tpm2_duplicate#duplicate-an-externally-loaded-hmac-key)
 
 #### PEM Keyfile format
 
