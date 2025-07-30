@@ -67,7 +67,8 @@ pc = AWSHMACCredentials(
     role_session_name=args.role_session_name,
     assume_role_arn=args.assume_role_arn,
 
-    get_session_token=args.get_session_token
+    get_session_token=args.get_session_token,
+    use_ek_cert=False
 )
 
 session = pc.get_session()

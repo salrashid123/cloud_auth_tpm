@@ -6,9 +6,11 @@ The supported set of providers and credential types:
 
 * `Google Cloud`
   - using [Service Account Credentials](https://cloud.google.com/iam/docs/service-account-creds) where the RSA private key is on the TPM
+
 * `AWS`
   - using [IAM Roles Anywhere](https://docs.aws.amazon.com/rolesanywhere/latest/userguide/introduction.html) where the RSA private key is on the TPM
   - using [HMAC Access Keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) where the `AWS_SECRET_ACCESS_KEY` is on the TPM
+
 * `Azure`
   - using [Certificate Credentials](https://learn.microsoft.com/en-us/entra/identity-platform/certificate-credentials) where the RSA private key is on the TPM
 
@@ -20,7 +22,7 @@ on python pypi: [https://pypi.org/project/cloud-auth-tpm/](https://pypi.org/proj
 
 ### Usage
 
-You need to first embed an RSA key into a TPM thats readable by [python-tss](https://github.com/tpm2-software/tpm2-pytss) or openssl and accessed using [PEM formatted TPM Keys](https://www.hansenpartnership.com/draft-bottomley-tpm2-keys.html).
+You need to first embed an RSA key into a TPM which is then read  using [PEM formatted TPM Keys](https://www.hansenpartnership.com/draft-bottomley-tpm2-keys.html) and is compatible with [python-tss](https://github.com/tpm2-software/tpm2-pytss) and openssl.
 
 To do that, see the [Using RSA Keys on TPM](#using-rsa-keys-on-tpm) section for options.
 
@@ -144,6 +146,7 @@ for blob in blob_list:
 | **`password`** | Password for the Key (userAuth):  (optional; default: ``) |
 | **`policy_impl`** | Concrete implementation class for Policy:  (optional; default: ``) |
 | **`enc_key_name`** | Hex "name" for the TPM key to use for session encryption:  (optional; default: ``) |
+| **`use_ek_cert`** | Use the EKRSA parent instead of the H2 template  (optional; default: `False`) |
 
 ##### **GCPCredentials**
 
@@ -243,7 +246,7 @@ For details on how to import an RSA or HMAC key into the TPM see [KeyImport](#ke
 
 The following demo uses a [swtpm](https://github.com/stefanberger/swtpm). 
 
-Ofcourse if you would like to use a real TPM, skip initializing the `swtpm` and specify the env variables (`TPM2TOOLS_TCTI=`) variable to an actual TPM one (eg, `/dev/tpmrm0`)
+Ofcourse if you would like to use a real TPM, skip initializing the `swtpm` and specify the env variables (`TPM2TOOLS_TCTI=`) variable to an actual TPM one (eg, `device:/dev/tpmrm0`)
 
 ```bash
 ## initialize swtpm
@@ -585,6 +588,12 @@ tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
 tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_pcr_auth.pem -p $KEY_PASSWORD
 ```
 
+#### PolicyAuthValue and PolicyDuplicateSelect
+
+If you remotely transferred the key using [tpmcopy](https://github.com/salrashid123/tpmcopy/tree/main?tab=readme-ov-file#rsa), you will need to fulfill `PolicyAuthValue` and `PolicyDuplicateSelect`.
+
+From there, you can instantiate `PolicyORAndDuplicateSelectPolicy` as shown in `example/main_gcp_duplicate.py`
+
 #### Custom Policy Implementation
 
 The built repo contains a helper function which fulfills a `PCR` policy (i.,e certain PCR values must be present to use the key).
@@ -653,16 +662,51 @@ from cloud_auth_tpm.policy import PCRPolicy
 ```
 #### Set TPM Based Private Key 
 
-The following outlines the various options to embed an RSA or HMAC key into a TPM
+The following outlines the various options to embed an RSA or HMAC key into a TPM.
+
+the details of these options, see [here](https://github.com/salrashid123/oauth2?tab=readme-ov-file#usage)
 
 ##### 1 Create Key on TPM and use Openssl to generate CSR
 
 The idea is the the system with the TPM creates an RSA key on its TPM and then issues a CSR against it
 
-Then a remote system with a CA will issue an x509 against it (presumably [attestation](https://github.com/salrashid123/go_tpm_remote_attestation) has already been done).
+```bash
+apt install tpm2-openssl tpm2-tools tpm2-abrmd libtss2-tcti-tabrmd0
 
-For a step by step anlog on how to do this, see [mTLS with TPM bound private key](https://github.com/salrashid123/go_tpm_https_embed?tab=readme-ov-file#appendix)
+### verify openssl tpm provider is installed
+openssl list --providers -provider tpm2
+    Providers:
+      tpm2
+        name: TPM 2.0 Provider
+        version: 
+        status: active
 
+## create H2 primary
+printf '\x00\x00' > unique.dat
+tpm2_createprimary -C o -G ecc  -g sha256  -c primary.ctx -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
+
+## create a key
+tpm2_create -G rsa2048:rsassa:null -g sha256 -u key.pub -r key.priv -C primary.ctx
+tpm2_load -C primary.ctx -u key.pub -r key.priv -c key.ctx
+# tpm2_evictcontrol -C o -c key.ctx 0x81010002
+tpm2_readpublic -c key.ctx -f PEM -o svc_account_tpm_pub.pem
+tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
+
+## you may need to add a -p if your tpm2 tools is not recent (see https://github.com/tpm2-software/tpm2-tools/issues/3458)
+tpm2_encodeobject -C primary.ctx -u key.pub -r key.priv -o svc_account_tpm.pem
+
+### issue the x509 as self-signed or csr
+
+## now use it to generate a csr
+# export SAN="DNS:client.domain.com"
+# openssl req -new  -provider tpm2  -provider default  \
+#   -out client.csr  \
+#   -key svc_account_tpm.pem    \
+#   -subj "/C=US/O=Google/OU=Enterprise/CN=client.domain.com" 
+
+# or self-signed certificate
+openssl req  -provider tpm2  -provider default   -new -x509 -key svc_account_tpm.pem -out svc_account_tpm.crt -days 365
+```
 
 ##### 2 Import external RSA Key to TPM
 
@@ -685,6 +729,10 @@ With this flow, you can generate an RSA key on one system and security transfer 
 - `RSA`: [Duplicate and transfer using endorsement key](https://github.com/salrashid123/tpm2/tree/master/tpm2_duplicate#duplicate-and-transfer-using-endorsement-key)
 
 - `HMAC`: [Duplicate an externally loaded HMAC key](https://github.com/salrashid123/tpm2/tree/master/tpm2_duplicate#duplicate-an-externally-loaded-hmac-key)
+
+Alternatively, you can use 
+
+- [tpmcopy](https://github.com/salrashid123/tpmcopy)
 
 #### PEM Keyfile format
 

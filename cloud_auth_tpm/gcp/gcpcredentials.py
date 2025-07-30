@@ -24,15 +24,16 @@ class GCPCredentials(BaseCredential,credentials.CredentialsWithQuotaProject):
         password=None,
         policy_impl=None,
         enc_key_name=None,
+        use_ek_cert=False,        
 
         email=None,
         scopes="https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email",
         key_id=None,
-        expire_in=3600,      
+        expire_in=3600,
     ):
 
 
-        BaseCredential.__init__(self,tcti=tcti,keyfile=keyfile,ownerpassword=ownerpassword,password=password,policy_impl=policy_impl,enc_key_name=enc_key_name)
+        BaseCredential.__init__(self,tcti=tcti,keyfile=keyfile,ownerpassword=ownerpassword,password=password,policy_impl=policy_impl,enc_key_name=enc_key_name,use_ek_cert=use_ek_cert)
         credentials.CredentialsWithQuotaProject.__init__(self)
 
         self._email = email

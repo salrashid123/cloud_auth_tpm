@@ -58,6 +58,7 @@ pc = AWSCredentials(tcti=args.tcti,
                     password=args.password,
                     policy_impl=None,
                     enc_key_name=args.enc_key_name,
+                    use_ek_cert=False,
 
                     public_certificate_file=args.public_certificate_file,
                     region=args.region,

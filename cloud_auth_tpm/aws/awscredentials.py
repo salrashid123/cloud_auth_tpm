@@ -32,7 +32,8 @@ class AWSCredentials(BaseCredential, CredentialProvider):
         password=None,
         policy_impl=None,
         enc_key_name=None,
-    
+        use_ek_cert=False,
+
         public_certificate_file=None,
         region=None,
         duration_seconds=3600,
@@ -41,12 +42,10 @@ class AWSCredentials(BaseCredential, CredentialProvider):
         role_arn=None,
         session_name=None,
 
-
-
         **kwargs: Any
     ):
         BaseCredential.__init__(self, tcti=tcti, keyfile=keyfile,
-                                ownerpassword=ownerpassword, password=password, policy_impl=policy_impl,enc_key_name=enc_key_name)
+                                ownerpassword=ownerpassword, password=password, policy_impl=policy_impl,enc_key_name=enc_key_name, use_ek_cert=use_ek_cert)
         CredentialProvider.__init__(self)
 
         self._public_certificate_file = public_certificate_file

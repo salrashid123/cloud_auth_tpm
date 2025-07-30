@@ -29,6 +29,7 @@ class AWSHMACCredentials(CredentialProvider):
         password=None,
         policy_impl=None,
         enc_key_name=None,
+        use_ek_cert=False,
 
         region=None,
         duration_seconds=3600,
@@ -50,6 +51,7 @@ class AWSHMACCredentials(CredentialProvider):
         self._password = password
         self._policy_impl = policy_impl
         self._enc_key_name = enc_key_name
+        self._use_ek_cert = use_ek_cert
 
         self._region = region
         self._duration_seconds = duration_seconds
@@ -102,18 +104,53 @@ class AWSHMACCredentials(CredentialProvider):
             inSensitiveOwner = TPM2B_SENSITIVE_CREATE(
                 TPMS_SENSITIVE_CREATE(userAuth=TPM2B_AUTH(self._ownerpassword)))
 
-        primary1, _, _, _, _ = ectx.create_primary(
-            inSensitiveOwner,  TPM2B_PUBLIC(publicArea=BaseCredential._parent_ecc_template))
+        if self._use_ek_cert:
+            def setup_ek_session(ectx):
+                sym = TPMT_SYM_DEF(
+                    algorithm=TPM2_ALG.XOR,
+                    keyBits=TPMU_SYM_KEY_BITS(exclusiveOr=TPM2_ALG.SHA256),
+                    mode=TPMU_SYM_MODE(aes=TPM2_ALG.CFB),
+                 )
+                session = ectx.start_auth_session(
+                    tpm_key=ESYS_TR.NONE,
+                    bind=ESYS_TR.NONE,
+                    session_type=TPM2_SE.POLICY,
+                    symmetric=sym,
+                    auth_hash=TPM2_ALG.SHA256,
+                )
+                nonce = ectx.trsess_get_nonce_tpm(session)
+                expiration = -(10 * 365 * 24 * 60 * 60)
+                ectx.policy_secret(
+                    ESYS_TR.ENDORSEMENT, session, nonce, b"", b"", expiration
+                )
+                ectx.trsess_set_attributes(session, TPMA_SESSION.ENCRYPT | TPMA_SESSION.DECRYPT)
+                return session
 
-        hkeyLoaded = ectx.load(primary1, k.private, k.public)
-        ectx.flush_context(primary1)
+            nv, tmpl = _ek.EK_RSA2048
+
+            inSensitive = TPM2B_SENSITIVE_CREATE(
+                    TPMS_SENSITIVE_CREATE(userAuth=TPM2B_AUTH(self._ownerpassword)))                
+            primary1, ek_pub, _, _, _ = ectx.create_primary(
+                inSensitive, tmpl, ESYS_TR.ENDORSEMENT)
+
+            ek_name = ek_pub.get_name()
+            sess = setup_ek_session(ectx)
+            hkeyLoaded = ectx.load(primary1, k.private, k.public,  session1=sess)
+            ectx.flush_context(primary1)            
+        else:
+            primary1, _, _, _, _ = ectx.create_primary(
+                inSensitiveOwner,  TPM2B_PUBLIC(publicArea=BaseCredential._parent_ecc_template))
+
+            hkeyLoaded = ectx.load(primary1, k.private, k.public)
+            ectx.flush_context(primary1)
 
         if self._password != None:
             ectx.tr_set_auth(hkeyLoaded, self._password)
 
         nv, tmpl = _ek.EK_RSA2048
 
-        inSensitive = TPM2B_SENSITIVE_CREATE()
+        inSensitive = TPM2B_SENSITIVE_CREATE(
+                TPMS_SENSITIVE_CREATE(userAuth=TPM2B_AUTH(self._ownerpassword))) 
         handle, outpub, _, _, _ = ectx.create_primary(
             inSensitive, tmpl, ESYS_TR.ENDORSEMENT)
 

@@ -59,7 +59,8 @@ pc = AzureCredentials(
     password=args.password,
     policy_impl=policy_impl,
     enc_key_name=args.enc_key_name,
-      
+    use_ek_cert=False,
+
     tenant_id=args.tenant_id,
     client_id=args.client_id,
     certificate_path=args.certificate_path)
