@@ -16,11 +16,11 @@ parser.add_argument("--public_certificate_file",
                     default="certs/alice-cert.crt", required=True)
 parser.add_argument("--region", default="us-east-2", required=True)
 parser.add_argument("--trust_anchor_arn",
-                    default='arn:aws:rolesanywhere:us-east-2:291738886522:trust-anchor/a545a1fc-5d86-4032-8f4c-61cdd6ff92ac', required=False)
+                    default='arn:aws:rolesanywhere:us-east-2:redacted:trust-anchor/a545a1fc-5d86-4032-8f4c-redacted', required=False)
 parser.add_argument(
-    "--role_arn", default="arn:aws:iam::291738886522:role/rolesanywhere1", required=False)
+    "--role_arn", default="arn:aws:iam::redacted:role/rolesanywhere1", required=False)
 parser.add_argument(
-    "--profile_arn", default="arn:aws:rolesanywhere:us-east-2:291738886522:profile/6f4943fb-13d4-4242-89c4-be367595c560", required=False)
+    "--profile_arn", default="arn:aws:rolesanywhere:us-east-2:redacted:profile/6f4943fb-13d4-4242-89c4-redacted", required=False)
 
 args = parser.parse_args()
 

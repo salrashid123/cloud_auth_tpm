@@ -23,8 +23,8 @@ parser.add_argument("--ek_name", default='')
 parser.add_argument("--enc_key_name", default='')
 
 parser.add_argument(
-    "--email", default='tpm-sa@core-eso.iam.gserviceaccount.com')
-parser.add_argument("--project_id", default='core-eso')
+    "--email", default='tpm-sa@redacted.iam.gserviceaccount.com')
+parser.add_argument("--project_id", default='')
 
 args = parser.parse_args()
 

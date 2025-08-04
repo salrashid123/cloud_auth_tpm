@@ -156,7 +156,7 @@ class AWSHMACCredentials(CredentialProvider):
 
         # n = ectx.tr_get_name(handle)
         n = outpub.get_name()
-        if self._enc_key_name != "":
+        if self._enc_key_name != None and self._enc_key_name != '':
             if bytes(n).hex() != self._enc_key_name:
                 raise Exception("session encryption key name mismatch: expected {}, got {}".format(
                     self._enc_key_name, bytes(n).hex()))

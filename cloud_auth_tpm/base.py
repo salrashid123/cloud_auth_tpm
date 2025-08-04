@@ -120,7 +120,7 @@ class BaseCredential():
             if k.empty_auth == False and self._password == '':
                 raise Exception("key has auth but password not set")
 
-            if self._password != '':
+            if self._password != '' and self._password != None:
                 ectx.tr_set_auth(rkeyLoaded, self._password)
 
 
@@ -130,7 +130,7 @@ class BaseCredential():
 
             # n = ectx.tr_get_name(handle)
             n = outpub.get_name()
-            if self._enc_key_name != "":
+            if self._enc_key_name != "" and self._enc_key_name != None:
                 if bytes(n).hex() != self._enc_key_name:
                     raise Exception("session encryption key name mismatch: expected {}, got {}".format(
                         self._enc_key_name, bytes(n).hex()))                

@@ -15,9 +15,9 @@ parser.add_argument("--enc_key_name", default='')
 parser.add_argument("--certificate_path",
                     default="certs/azclient.crt", required=True)
 parser.add_argument(
-    "--tenant_id", default="45243fbe-b73f-4f7d-8213-a104a99e428e", required=True)
+    "--tenant_id", default="45243fbe-b73f-4f7d-8213-redacted", required=True)
 parser.add_argument(
-    "--client_id", default="cffeaee2-5617-4784-8a4b-b647efd676e1", required=False)
+    "--client_id", default="cffeaee2-5617-4784-8a4b-redacted", required=False)
 parser.add_argument("--storageaccount",
                     default="mineralminutia", required=False)
 parser.add_argument("--container", default="mineral-minutia", required=False)

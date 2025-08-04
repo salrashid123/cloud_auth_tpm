@@ -408,7 +408,9 @@ echo -n $secret > hmac.key
 
 ## create the h2 template
 printf '\x00\x00' > unique.dat
-tpm2_createprimary -C o -G ecc  -g sha256  -c primary.ctx -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
+tpm2_createprimary -C o -G ecc  -g sha256 \
+    -c primary.ctx \
+    -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|noda|restricted|decrypt" -u unique.dat
 
 # embed the hmac key
 tpm2_import -C primary.ctx -G hmac -i hmac.key -u hmac.pub -r hmac.prv  -p $KEY_PASSWORD
@@ -532,7 +534,7 @@ tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
 tpm2_load -C primary.ctx -u  rsa.pub -r  rsa.prv -c  rsa.ctx 
 tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
 
-tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_auth.pem -p $KEY_PASSWORD
+tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_auth.pem -p
 ```
 
 ##### PCR Policy
@@ -585,7 +587,7 @@ tpm2_import -C primary.ctx  -G rsa2048:rsassa:null \
 
 tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l   
 
-tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_pcr_auth.pem -p $KEY_PASSWORD
+tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_pcr_auth.pem -p
 ```
 
 #### PolicyAuthValue and PolicyDuplicateSelect

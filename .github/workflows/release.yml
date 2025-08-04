@@ -8,11 +8,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Install a swtpm
+      run: |
+        sudo apt-get update && sudo apt-get -y install swtpm swtpm-tools libtss2-dev
+
+    - name: run swtpm
+      run: |
+        mkdir /tmp/myvtpm && /usr/share/swtpm/swtpm-create-user-config-files && swtpm_setup --tpmstate /tmp/myvtpm --tpm2 --create-ek-cert && swtpm socket --tpmstate dir=/tmp/myvtpm --tpm2 --server type=tcp,port=2321 --ctrl type=tcp,port=2322 --flags not-need-init,startup-clear &
+
     - uses: actions/checkout@v4
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.x"
+  
+    - name: Test with pytest
+      env:
+        CICD_SA_PEM: ${{ secrets.CICD_SA_PEM }}    
+        CICD_SA_EMAIL: ${{ secrets.CICD_SA_EMAIL }}   
+        CICD_SA_PROJECT: ${{ secrets.CICD_SA_PROJECT }}    
+        CICD_BUCKET: ${{ secrets.CICD_BUCKET }}   
+
+        CICD_AWS_CERT: ${{ secrets.CICD_AWS_CERT }}    
+        CICD_AWS_PEM: ${{ secrets.CICD_AWS_PEM }}   
+        CICD_SA_PROJECT: ${{ secrets.CICD_SA_PROJECT }}    
+        CICD_AWS_REGION: ${{ secrets.CICD_AWS_REGION }}  
+        CICD_AWS_TRUST_ANCHOR_ARN: ${{ secrets.CICD_AWS_TRUST_ANCHOR_ARN }}   
+        CICD_AWS_ROLE_ARN: ${{ secrets.CICD_AWS_ROLE_ARN }}    
+        CICD_AWS_PROFILE_ARN: ${{ secrets.CICD_AWS_PROFILE_ARN }}  
+        CICD_AWS_ACCESS_KEY: ${{ secrets.CICD_AWS_ACCESS_KEY }}    
+        CICD_AWS_ACCESS_SECRET: ${{ secrets.CICD_AWS_ACCESS_SECRET }}  
+        CICD_AWS_HMAC_REGION: ${{ secrets.CICD_AWS_HMAC_REGION }} 
+
+        CICD_AZURE_CLIENT_ID: ${{ secrets.CICD_AZURE_CLIENT_ID }}   
+        CICD_AZURE_TENANT_ID: ${{ secrets.CICD_AZURE_TENANT_ID }}    
+        CICD_AZURE_STORAGEACCOUNT: ${{ secrets.CICD_AZURE_STORAGEACCOUNT }}  
+        CICD_AZURE_CONTAINER: ${{ secrets.CICD_AZURE_CONTAINER }}    
+        CICD_AZURE_CLIENT_PEM: ${{ secrets.CICD_AZURE_CLIENT_PEM }}  
+        CICD_AZURE_CERT: ${{ secrets.CICD_AZURE_CERT }} 
+
+        PYTHONDONTWRITEBYTECODE: 1
+      run: |
+        pip install logging pytest pytest-cov tpm2-pytss cryptography requests google-auth google-cloud-storage boto3 botocore azure-storage-blob azure-identity
+        pytest testing/test_all.py --junitxml=report.xml -p no:warnings
+
+    - name: Publish test results
+      uses: test-summary/action@v2
+      if: always()
+      with:
+        paths: 'report.xml'
+
     - name: Install pypa/build
       run: >-
         python3 -m

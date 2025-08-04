@@ -42,7 +42,7 @@ class GCPCredentials(BaseCredential,credentials.CredentialsWithQuotaProject):
         self._expire_in = expire_in
 
 
-        if self._email == '':
+        if self._email == '' or self._email == None:
             raise exceptions.DefaultCredentialsError("Error : {}".format("email and path must be specified"))
         
         self.token = None
