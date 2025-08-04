@@ -31,7 +31,6 @@ jobs:
 
         CICD_AWS_CERT: ${{ secrets.CICD_AWS_CERT }}    
         CICD_AWS_PEM: ${{ secrets.CICD_AWS_PEM }}   
-        CICD_SA_PROJECT: ${{ secrets.CICD_SA_PROJECT }}    
         CICD_AWS_REGION: ${{ secrets.CICD_AWS_REGION }}  
         CICD_AWS_TRUST_ANCHOR_ARN: ${{ secrets.CICD_AWS_TRUST_ANCHOR_ARN }}   
         CICD_AWS_ROLE_ARN: ${{ secrets.CICD_AWS_ROLE_ARN }}    
