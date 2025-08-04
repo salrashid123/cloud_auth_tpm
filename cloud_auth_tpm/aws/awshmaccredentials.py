@@ -1,5 +1,5 @@
 from tpm2_pytss import *
-
+from typing import Any
 from cloud_auth_tpm.base import BaseCredential
 from tpm2_pytss.tsskey import TSSPrivKey
 from tpm2_pytss.internal.templates import _ek
