@@ -22,6 +22,7 @@ from azure.storage.blob import BlobServiceClient
 
 from .utils import loadHMAC, loadRSA, _parent_ecc_template
 
+import os
 import unittest
 
 swtpm = "swtpm:port=2321"
