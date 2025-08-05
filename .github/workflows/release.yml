@@ -56,7 +56,15 @@ jobs:
       if: always()
       with:
         paths: 'report.xml'
-
+        output: test-summary.md
+  
+    - name: Upload test summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-summary
+        path: test-summary.md
+      if: always()
+      
     - name: Install pypa/build
       run: >-
         python3 -m
