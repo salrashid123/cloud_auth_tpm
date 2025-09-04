@@ -16,6 +16,10 @@ The supported set of providers and credential types:
 
 on python pypi: [https://pypi.org/project/cloud-auth-tpm/](https://pypi.org/project/cloud-auth-tpm/)
 
+if your'e interested in `PKCS-11`, see
+
+* [Cloud Auth Library using PKCS-11](https://github.com/salrashid123/cloud_auth_pkcs)
+
 > This code is not affiliated with or supported by google
 
 ---
