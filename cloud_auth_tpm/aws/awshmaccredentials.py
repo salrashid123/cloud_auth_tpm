@@ -2,6 +2,7 @@ from tpm2_pytss import *
 from typing import Any
 from cloud_auth_tpm.base import BaseCredential
 from tpm2_pytss.tsskey import TSSPrivKey
+#from tpm2_pytss.internal.templates import ek_rsa2048
 from tpm2_pytss.internal.templates import _ek
 
 import json
@@ -126,6 +127,7 @@ class AWSHMACCredentials(CredentialProvider):
                 ectx.trsess_set_attributes(session, TPMA_SESSION.ENCRYPT | TPMA_SESSION.DECRYPT)
                 return session
 
+            #tmpl = ek_rsa2048.template
             nv, tmpl = _ek.EK_RSA2048
 
             inSensitive = TPM2B_SENSITIVE_CREATE(
@@ -147,6 +149,7 @@ class AWSHMACCredentials(CredentialProvider):
         if self._password != None:
             ectx.tr_set_auth(hkeyLoaded, self._password)
 
+        #tmpl = ek_rsa2048.template
         nv, tmpl = _ek.EK_RSA2048
 
         inSensitive = TPM2B_SENSITIVE_CREATE(

@@ -351,6 +351,17 @@ What that means is if you take a private key and generate a valid JWT with in th
 
 So since we have the RSA key on the TPM, we can use the ESAPI to make it "sign" data for the JWT.
 
+##### GCP Python Workload Federation TPM based mTLS
+
+If you want to use a TPM with [GCP mTLS Workload Federation](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-x509-certificates) where the private key is embeded in a TPM, you don't actually even need to use this libary with python. 
+
+mTLS with python is automatically supported through python request module's `tpm2_tss` support
+
+ See
+
+* [GCP Python Workload Federation TPM based mTLS](https://gist.github.com/salrashid123/4c1e1598cf87d7723f1462e4854bc14c)
+
+
 #### Setup - AWS
 
 [AWS Roles Anywhere](https://docs.aws.amazon.com/rolesanywhere/latest/userguide/introduction.html) allows for client authentication based on digital signature from trusted private keys.
@@ -457,14 +468,15 @@ If you want to follow the instructions above and use the key provided in this re
 
 ```bash
 ## this is just the public cert and key pem in one file
-export CERTIFICATE_PATH_COMBINED_DER="certs/azclient-cert-key.pem" 
+# openssl pkcs12 -export -out azclient-cert-key.pem -inkey azclient.key  -in azclient.crt
+export CERTIFICATE_PATH_COMBINED_PEM="azclient-cert-key.pem" 
 ## this is just the public cert
 export CERTIFICATE_PATH="certs/azclient.crt" 
 export CLIENT_ID="cffeaee2-5617-4784-8a4b-b647efd676e1"
 export TENANT_ID="45243fbe-b73f-4f7d-8213-a104a99e428e"
 
 ## test that you have the cert based auth working
-az login --service-principal -u $CLIENT_ID -p $CERTIFICATE_PATH_COMBINED_DER --tenant=$TENANT_ID
+az login --service-principal -u $CLIENT_ID --certificate $CERTIFICATE_PATH_COMBINED_PEM --tenant=$TENANT_ID
 az account get-access-token   --scope="api://$CLIENT_ID/.default"
 
 ## if the principal has access to a storage container, test that
@@ -599,6 +611,25 @@ tpm2_encodeobject -C primary.ctx -u rsa.pub -r rsa.prv -o rsa_pcr_auth.pem -p
 If you remotely transferred the key using [tpmcopy](https://github.com/salrashid123/tpmcopy/tree/main?tab=readme-ov-file#rsa), you will need to fulfill `PolicyAuthValue` and `PolicyDuplicateSelect`.
 
 From there, you can instantiate `PolicyORAndDuplicateSelectPolicy` as shown in `example/main_gcp_duplicate.py`
+
+
+```bash
+wget https://github.com/salrashid123/tpmcopy/releases/download/v0.5.2/tpmcopy_0.5.2_linux_amd64
+export TPMB="127.0.0.1:2321"
+
+./tpmcopy_0.5.2_linux_amd64 --mode publickey --parentKeyType=rsa_ek -tpmPublicKeyFile=ek_public.pem --tpm-path=$TPMB
+
+openssl pkcs8 -topk8 -nocrypt -in rsakey.pem  -out rsakey-pkcs8.pem
+
+./tpmcopy_0.5.2_linux_amd64  --mode duplicate --keyType=rsa --secret=rsakey-pkcs8.pem --rsaScheme=rsassa \
+ --hashScheme=sha256  -tpmPublicKeyFile=ek_public.pem -out=out.json
+
+./tpmcopy_0.5.2_linux_amd64 --mode import --parentKeyType=rsa_ek --in=out.json --out=gcp_ek.pem  --tpm-path=$TPMB
+
+
+python3 main_gcp_duplicate.py --keyfile=gcp_ek.pem   \
+  --email=$SERVICE_ACCOUNT_EMAIL --project_id=$PROJECT_ID --bucket_name=cicd-sa-test-bucket --tcti=$TPM2TOOLS_TCTI
+```
 
 #### Custom Policy Implementation
 

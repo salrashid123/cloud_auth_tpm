@@ -5,6 +5,7 @@ from cloud_auth_tpm.policy import PCRPolicy, PCRAuthValuePolicy, PolicyORAndDupl
 
 from tpm2_pytss import *
 from tpm2_pytss.internal.templates import _ek
+#from tpm2_pytss.internal.templates import ek_rsa2048
 from tpm2_pytss.tsskey import TSSPrivKey
 
 import argparse
@@ -21,6 +22,7 @@ parser.add_argument("--ownerpassword", default='')
 parser.add_argument("--password", default='')
 parser.add_argument("--ek_name", default='')
 parser.add_argument("--enc_key_name", default='')
+parser.add_argument("--bucket_name", default='')
 
 parser.add_argument(
     "--email", default='tpm-sa@redacted.iam.gserviceaccount.com')
@@ -52,6 +54,7 @@ if args.ek_name == '':
         ectx.trsess_set_attributes(session, TPMA_SESSION.ENCRYPT | TPMA_SESSION.DECRYPT)
         return session
 
+    #tmpl = ek_rsa2048.template
     nv, tmpl = _ek.EK_RSA2048
 
     inSensitive = TPM2B_SENSITIVE_CREATE(
@@ -106,12 +109,13 @@ pc = GCPCredentials(tcti=args.tcti,
                     password=args.password,
                     policy_impl=policy_impl,
                     enc_key_name=args.enc_key_name,
-                    use_ek_cert=False,
+                    use_ek_cert=True,
                     
                     email=args.email)
 
 storage_client = storage.Client(project=args.project_id, credentials=pc)
 
-buckets = storage_client.list_buckets()
-for bkt in buckets:
-    print(bkt.name)
+blobs = storage_client.list_blobs(args.bucket_name)
+
+for blob in blobs:
+  print(blob.name)

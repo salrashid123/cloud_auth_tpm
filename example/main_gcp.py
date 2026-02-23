@@ -16,6 +16,7 @@ parser.add_argument("--enc_key_name", default='')
 parser.add_argument(
     "--email", default='tpm-sa@core-eso.iam.gserviceaccount.com')
 parser.add_argument("--project_id", default='core-eso')
+parser.add_argument("--bucket_name", default='cicd-sa-test-bucket')
 
 args = parser.parse_args()
 
@@ -57,6 +58,7 @@ pc = GCPCredentials(tcti=args.tcti,
 
 storage_client = storage.Client(project=args.project_id, credentials=pc)
 
-buckets = storage_client.list_buckets()
-for bkt in buckets:
-    print(bkt.name)
+blobs = storage_client.list_blobs(args.bucket_name)
+
+for blob in blobs:
+  print(blob.name)

@@ -1,7 +1,7 @@
 from tpm2_pytss import *
 from tpm2_pytss.tsskey import TSSPrivKey
+#from tpm2_pytss.internal.templates import ek_rsa2048
 from tpm2_pytss.internal.templates import _ek
-
 from cloud_auth_tpm.policy.policy import PolicyEval
 
 from cryptography.hazmat.primitives import hashes
@@ -102,6 +102,7 @@ class BaseCredential():
                     ectx.trsess_set_attributes(session, TPMA_SESSION.ENCRYPT | TPMA_SESSION.DECRYPT)
                     return session
 
+                #tmpl = ek_rsa2048.template
                 nv, tmpl = _ek.EK_RSA2048
             
                 primary1, ek_pub, _, _, _ = ectx.create_primary(
@@ -124,6 +125,7 @@ class BaseCredential():
                 ectx.tr_set_auth(rkeyLoaded, self._password)
 
 
+            #tmpl = ek_rsa2048.template
             nv, tmpl = _ek.EK_RSA2048
             handle, outpub, _, _, _ = ectx.create_primary(
                 inSensitiveOwner, tmpl, ESYS_TR.ENDORSEMENT)
