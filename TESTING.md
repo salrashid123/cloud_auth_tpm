@@ -33,3 +33,20 @@ export CICD_AZURE_CONTAINER=your_container
 export CICD_AZURE_CLIENT_PEM=`cat /path/to/azureclient.key`
 export CICD_AZURE_CERT=`cat /path/to/azureclient.crt
 ```
+
+```bash
+virtualenv /tmp/env
+source /tmp/env/bin/activate
+
+pip3 install setuptools pytest
+python3 setup.py sdist bdist_wheel
+pip3 install -r example/requirements-gcp.txt 
+pip3 install -r example/requirements-aws.txt 
+pip3 install -r example/requirements-azure.txt 
+
+
+export TPM2TOOLS_TCTI="swtpm:port=2321"
+tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
+
+pytest testing/test_all.py --junitxml=report.xml -p no:warnings
+```
