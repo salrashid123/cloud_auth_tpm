@@ -48,7 +48,7 @@ jobs:
 
         PYTHONDONTWRITEBYTECODE: 1
       run: |
-        pip install logging pytest pytest-cov tpm2-pytss==2.3.0 cryptography requests google-auth google-cloud-storage boto3 botocore azure-storage-blob azure-identity
+        pip install logging pytest pytest-cov tpm2-pytss>=3.0.0 cryptography requests google-auth google-cloud-storage boto3 botocore azure-storage-blob azure-identity
         pytest testing/test_all.py --junitxml=report.xml -p no:warnings
 
     - name: Publish test results
