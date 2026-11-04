@@ -49,7 +49,6 @@ class TestAWS(unittest.TestCase):
   
     # inSensitive = TPM2B_SENSITIVE_CREATE()
     # primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
-
     # kh = ectx.load(primary1, k.private, k.public)
     # ectx.flush_context(primary1)
     # ectx.flush_context(kh)
