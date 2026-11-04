@@ -76,7 +76,7 @@ class BaseCredential():
 
         self._policy_impl = policy_impl
 
-    @backoff.on_exception(backoff.constant, TPMHandleException, interval=1, max_tries=3)
+    @backoff.on_exception(backoff.constant, TPMHandleException, interval=2, max_tries=5)
     def defer_tpm_handles(self):
         # defert_tpm_handles() provides a retry dely when accessing a TPM Handle.
         ###  TPM's have limited number of handles to work with and a handle is usually loaded, used, then released
@@ -103,6 +103,7 @@ class BaseCredential():
 
                 if len(handles) > 0:
                      raise TPMHandleException(f"tpm handles in use:  count {len(handles)}")
+        ectx.close()
 
     def sign(self, data):
         try:
