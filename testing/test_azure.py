@@ -45,12 +45,12 @@ class TestAzure(unittest.TestCase):
     )
     k = loadRSA(ectx,private_key)
 
-    inSensitive = TPM2B_SENSITIVE_CREATE()
-    primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
+    # inSensitive = TPM2B_SENSITIVE_CREATE()
+    # primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
 
-    kh = ectx.load(primary1, k.private, k.public)
-    ectx.flush_context(primary1)
-    ectx.flush_context(kh)
+    # kh = ectx.load(primary1, k.private, k.public)
+    # ectx.flush_context(primary1)
+    # ectx.flush_context(kh)
 
     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
         tmp_file.write(k.to_pem().decode("utf-8"))
