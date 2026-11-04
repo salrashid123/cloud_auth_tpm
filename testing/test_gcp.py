@@ -38,12 +38,12 @@ class TestGCP(unittest.TestCase):
     )
     k = loadRSA(ectx,private_key)
   
-    inSensitive = TPM2B_SENSITIVE_CREATE()
-    primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
+    # inSensitive = TPM2B_SENSITIVE_CREATE()
+    # primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
 
-    kh = ectx.load(primary1, k.private, k.public)
-    ectx.flush_context(primary1)
-    ectx.flush_context(kh)
+    # kh = ectx.load(primary1, k.private, k.public)
+    # ectx.flush_context(primary1)
+    # ectx.flush_context(kh)
 
 
     # scheme = TPMT_SIG_SCHEME(scheme=TPM2_ALG.RSASSA)
