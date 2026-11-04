@@ -199,10 +199,12 @@ class BaseCredential():
                 s = ectx.sign(rkeyLoaded, TPM2B_DIGEST(digest),
                               scheme, validation, session1=sess)
                 
+            ectx.flush_context(handle)
+            ectx.flush_context(rkeyLoaded)
+
             return bytes(s.signature.rsassa.sig)
         except Exception as e:
             raise Exception(e)
         finally:
-            ectx.flush_context(handle)
-            ectx.flush_context(rkeyLoaded)
+
             ectx.close()          
