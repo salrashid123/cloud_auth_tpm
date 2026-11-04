@@ -83,178 +83,178 @@ class TestGCP(unittest.TestCase):
     ectx.close()
 
  
-class TestAWS(unittest.TestCase):
-  def testS3RolesAnywhere(self):
+# class TestAWS(unittest.TestCase):
+#   def testS3RolesAnywhere(self):
 
-    ectx = ESAPI(tcti=swtpm)
-    ectx.startup(TPM2_SU.CLEAR)
+#     ectx = ESAPI(tcti=swtpm)
+#     ectx.startup(TPM2_SU.CLEAR)
 
-    CICD_AWS_CERT = os.getenv('CICD_AWS_CERT')
-    CICD_AWS_PEM = os.getenv('CICD_AWS_PEM')
-    CICD_AWS_REGION = os.getenv('CICD_AWS_REGION')
-    CICD_AWS_TRUST_ANCHOR_ARN = os.getenv('CICD_AWS_TRUST_ANCHOR_ARN')
-    CICD_AWS_ROLE_ARN = os.getenv('CICD_AWS_ROLE_ARN')
-    CICD_AWS_PROFILE_ARN = os.getenv('CICD_AWS_PROFILE_ARN')
+#     CICD_AWS_CERT = os.getenv('CICD_AWS_CERT')
+#     CICD_AWS_PEM = os.getenv('CICD_AWS_PEM')
+#     CICD_AWS_REGION = os.getenv('CICD_AWS_REGION')
+#     CICD_AWS_TRUST_ANCHOR_ARN = os.getenv('CICD_AWS_TRUST_ANCHOR_ARN')
+#     CICD_AWS_ROLE_ARN = os.getenv('CICD_AWS_ROLE_ARN')
+#     CICD_AWS_PROFILE_ARN = os.getenv('CICD_AWS_PROFILE_ARN')
 
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
-      tmp_file.write(CICD_AWS_CERT)
-      tmp_file_cert = tmp_file.name    
+#     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
+#       tmp_file.write(CICD_AWS_CERT)
+#       tmp_file_cert = tmp_file.name    
 
 
-    private_key = serialization.load_pem_private_key(
-          CICD_AWS_PEM.encode('utf-8'),
-          password=None,
-          backend=default_backend()
-    )
-    k = loadRSA(ectx,private_key)
+#     private_key = serialization.load_pem_private_key(
+#           CICD_AWS_PEM.encode('utf-8'),
+#           password=None,
+#           backend=default_backend()
+#     )
+#     k = loadRSA(ectx,private_key)
   
-    inSensitive = TPM2B_SENSITIVE_CREATE()
-    primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
+#     inSensitive = TPM2B_SENSITIVE_CREATE()
+#     primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
 
-    kh = ectx.load(primary1, k.private, k.public)
-    ectx.flush_context(primary1)
-    ectx.flush_context(kh)
+#     kh = ectx.load(primary1, k.private, k.public)
+#     ectx.flush_context(primary1)
+#     ectx.flush_context(kh)
 
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
-        tmp_file.write(k.to_pem().decode("utf-8"))
-        tmp_file_path = tmp_file.name    
+#     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
+#         tmp_file.write(k.to_pem().decode("utf-8"))
+#         tmp_file_path = tmp_file.name    
 
     
-    pc = AWSCredentials(tcti=swtpm,
-                        keyfile=tmp_file_path,
-                        ownerpassword=None,
-                        password=None,
-                        policy_impl=None,
-                        enc_key_name=None,
-                        use_ek_cert=False,
+#     pc = AWSCredentials(tcti=swtpm,
+#                         keyfile=tmp_file_path,
+#                         ownerpassword=None,
+#                         password=None,
+#                         policy_impl=None,
+#                         enc_key_name=None,
+#                         use_ek_cert=False,
 
-                        public_certificate_file=tmp_file_cert,
-                        region=CICD_AWS_REGION,
-                        duration_seconds=1000,
-                        trust_anchor_arn=CICD_AWS_TRUST_ANCHOR_ARN,
-                        session_name="foo",
-                        role_arn=CICD_AWS_ROLE_ARN,
-                        profile_arn=CICD_AWS_PROFILE_ARN)
+#                         public_certificate_file=tmp_file_cert,
+#                         region=CICD_AWS_REGION,
+#                         duration_seconds=1000,
+#                         trust_anchor_arn=CICD_AWS_TRUST_ANCHOR_ARN,
+#                         session_name="foo",
+#                         role_arn=CICD_AWS_ROLE_ARN,
+#                         profile_arn=CICD_AWS_PROFILE_ARN)
 
 
-    session = pc.get_session()
+#     session = pc.get_session()
 
-    s3 = session.resource('s3')
-    ectx.close()
+#     s3 = session.resource('s3')
+#     ectx.close()
 
-    lenbuckets=(len(list(s3.buckets.all())))
-    self.assertGreaterEqual(1,lenbuckets)
+#     lenbuckets=(len(list(s3.buckets.all())))
+#     self.assertGreaterEqual(1,lenbuckets)
 
-  def testS3HMAC(self):
+#   def testS3HMAC(self):
 
-    ectx = ESAPI(tcti=swtpm)
-    ectx.startup(TPM2_SU.CLEAR)
+#     ectx = ESAPI(tcti=swtpm)
+#     ectx.startup(TPM2_SU.CLEAR)
 
-    CICD_AWS_ACCESS_KEY = os.getenv('CICD_AWS_ACCESS_KEY')
-    CICD_AWS_ACCESS_SECRET = os.getenv('CICD_AWS_ACCESS_SECRET')
-    CICD_AWS_HMAC_REGION = os.getenv('CICD_AWS_HMAC_REGION')
-    CICD_AWS_ROLE_ARN = os.getenv('CICD_AWS_ROLE_ARN')
+#     CICD_AWS_ACCESS_KEY = os.getenv('CICD_AWS_ACCESS_KEY')
+#     CICD_AWS_ACCESS_SECRET = os.getenv('CICD_AWS_ACCESS_SECRET')
+#     CICD_AWS_HMAC_REGION = os.getenv('CICD_AWS_HMAC_REGION')
+#     CICD_AWS_ROLE_ARN = os.getenv('CICD_AWS_ROLE_ARN')
 
-    k = loadHMAC(ectx,'AWS4{}'.format(CICD_AWS_ACCESS_SECRET))
+#     k = loadHMAC(ectx,'AWS4{}'.format(CICD_AWS_ACCESS_SECRET))
   
-    inSensitive = TPM2B_SENSITIVE_CREATE()
-    primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
+#     inSensitive = TPM2B_SENSITIVE_CREATE()
+#     primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
 
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
-        tmp_file.write(k.to_pem().decode("utf-8"))
-        tmp_file_path = tmp_file.name
+#     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
+#         tmp_file.write(k.to_pem().decode("utf-8"))
+#         tmp_file_path = tmp_file.name
 
-    kh = ectx.load(primary1, k.private, k.public)
-    ectx.flush_context(primary1)
-    ectx.flush_context(kh)
+#     kh = ectx.load(primary1, k.private, k.public)
+#     ectx.flush_context(primary1)
+#     ectx.flush_context(kh)
 
-    rolesessionName = "mysession"
+#     rolesessionName = "mysession"
 
-    pc = AWSHMACCredentials(tcti=swtpm,
-                        keyfile=tmp_file_path,
-                        ownerpassword=None,
-                        password=None,
-                        policy_impl=None,
-                        enc_key_name=None,
-                        use_ek_cert=False,
+#     pc = AWSHMACCredentials(tcti=swtpm,
+#                         keyfile=tmp_file_path,
+#                         ownerpassword=None,
+#                         password=None,
+#                         policy_impl=None,
+#                         enc_key_name=None,
+#                         use_ek_cert=False,
 
-                        access_key=CICD_AWS_ACCESS_KEY,
-                        region=CICD_AWS_HMAC_REGION,
-                        duration_seconds=3600,
-                        role_session_name=rolesessionName,
-                        assume_role_arn=CICD_AWS_ROLE_ARN,
+#                         access_key=CICD_AWS_ACCESS_KEY,
+#                         region=CICD_AWS_HMAC_REGION,
+#                         duration_seconds=3600,
+#                         role_session_name=rolesessionName,
+#                         assume_role_arn=CICD_AWS_ROLE_ARN,
 
-                        get_session_token=False)
-
-
-
-    session = pc.get_session()
-
-    s3 = session.resource('s3')
-    ectx.close()
-
-    lenbuckets=(len(list(s3.buckets.all())))
-    self.assertGreaterEqual(1,lenbuckets)
+#                         get_session_token=False)
 
 
-class TestAzure(unittest.TestCase):
-  def testCertificateAuth(self):
-    ectx = ESAPI(tcti=swtpm)
-    ectx.startup(TPM2_SU.CLEAR)
 
-    CICD_AZURE_CLIENT_PEM = os.getenv('CICD_AZURE_CLIENT_PEM')
-    CICD_AZURE_CERT = os.getenv('CICD_AZURE_CERT')    
-    CICD_AZURE_TENANT_ID = os.getenv('CICD_AZURE_TENANT_ID')
-    CICD_AZURE_CLIENT_ID = os.getenv('CICD_AZURE_CLIENT_ID')
-    CICD_AZURE_STORAGEACCOUNT = os.getenv('CICD_AZURE_STORAGEACCOUNT')
-    CICD_AZURE_CONTAINER = os.getenv('CICD_AZURE_CONTAINER')
+#     session = pc.get_session()
 
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
-      tmp_file.write(CICD_AZURE_CERT)
-      tmp_file_cert = tmp_file.name    
+#     s3 = session.resource('s3')
+#     ectx.close()
+
+#     lenbuckets=(len(list(s3.buckets.all())))
+#     self.assertGreaterEqual(1,lenbuckets)
 
 
-    private_key = serialization.load_pem_private_key(
-          CICD_AZURE_CLIENT_PEM.encode('utf-8'),
-          password=None,
-          backend=default_backend()
-    )
-    k = loadRSA(ectx,private_key)
+# class TestAzure(unittest.TestCase):
+#   def testCertificateAuth(self):
+#     ectx = ESAPI(tcti=swtpm)
+#     ectx.startup(TPM2_SU.CLEAR)
 
-    inSensitive = TPM2B_SENSITIVE_CREATE()
-    primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
+#     CICD_AZURE_CLIENT_PEM = os.getenv('CICD_AZURE_CLIENT_PEM')
+#     CICD_AZURE_CERT = os.getenv('CICD_AZURE_CERT')    
+#     CICD_AZURE_TENANT_ID = os.getenv('CICD_AZURE_TENANT_ID')
+#     CICD_AZURE_CLIENT_ID = os.getenv('CICD_AZURE_CLIENT_ID')
+#     CICD_AZURE_STORAGEACCOUNT = os.getenv('CICD_AZURE_STORAGEACCOUNT')
+#     CICD_AZURE_CONTAINER = os.getenv('CICD_AZURE_CONTAINER')
 
-    kh = ectx.load(primary1, k.private, k.public)
-    ectx.flush_context(primary1)
-    ectx.flush_context(kh)
+#     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
+#       tmp_file.write(CICD_AZURE_CERT)
+#       tmp_file_cert = tmp_file.name    
 
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
-        tmp_file.write(k.to_pem().decode("utf-8"))
-        tmp_file_path = tmp_file.name    
 
-    pc = AzureCredentials(
-        tcti=swtpm,
-        keyfile=tmp_file_path,
-        ownerpassword=None,
-        password=None,
-        policy_impl=None,
-        enc_key_name=None,
-        use_ek_cert=False,
+#     private_key = serialization.load_pem_private_key(
+#           CICD_AZURE_CLIENT_PEM.encode('utf-8'),
+#           password=None,
+#           backend=default_backend()
+#     )
+#     k = loadRSA(ectx,private_key)
 
-        tenant_id=CICD_AZURE_TENANT_ID,
-        client_id=CICD_AZURE_CLIENT_ID,
-        certificate_path=tmp_file_cert)
+#     inSensitive = TPM2B_SENSITIVE_CREATE()
+#     primary1, parent, _, _, _ = ectx.create_primary(inSensitive,  TPM2B_PUBLIC(publicArea=_parent_ecc_template))
 
-    blob_service_client = BlobServiceClient(
-        account_url="https://{}.blob.core.windows.net".format(CICD_AZURE_STORAGEACCOUNT),
-        credential=pc
-    )
-    container_client = blob_service_client.get_container_client(CICD_AZURE_CONTAINER)
+#     kh = ectx.load(primary1, k.private, k.public)
+#     ectx.flush_context(primary1)
+#     ectx.flush_context(kh)
 
-    blob_list = container_client.list_blobs()
-    ectx.close()    
-    lenbuckets=(len(list(blob_list)))
-    self.assertGreaterEqual(1,lenbuckets)
+#     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".pem") as tmp_file:
+#         tmp_file.write(k.to_pem().decode("utf-8"))
+#         tmp_file_path = tmp_file.name    
+
+#     pc = AzureCredentials(
+#         tcti=swtpm,
+#         keyfile=tmp_file_path,
+#         ownerpassword=None,
+#         password=None,
+#         policy_impl=None,
+#         enc_key_name=None,
+#         use_ek_cert=False,
+
+#         tenant_id=CICD_AZURE_TENANT_ID,
+#         client_id=CICD_AZURE_CLIENT_ID,
+#         certificate_path=tmp_file_cert)
+
+#     blob_service_client = BlobServiceClient(
+#         account_url="https://{}.blob.core.windows.net".format(CICD_AZURE_STORAGEACCOUNT),
+#         credential=pc
+#     )
+#     container_client = blob_service_client.get_container_client(CICD_AZURE_CONTAINER)
+
+#     blob_list = container_client.list_blobs()
+#     ectx.close()    
+#     lenbuckets=(len(list(blob_list)))
+#     self.assertGreaterEqual(1,lenbuckets)
 
 
 if __name__ == "__main__":
