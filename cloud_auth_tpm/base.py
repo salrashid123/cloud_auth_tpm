@@ -1,12 +1,14 @@
 from tpm2_pytss import *
 from tpm2_pytss.tsskey import TSSPrivKey
-#from tpm2_pytss.internal.templates import ek_rsa2048
-from tpm2_pytss.internal.templates import _ek
+from tpm2_pytss.internal.templates import ek_rsa2048
 from cloud_auth_tpm.policy.policy import PolicyEval
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
+from tpm2_pytss.constants import TPM2_PT, TPM2_HR
+
+import backoff
 
 def sha256(data: bytes) -> bytes:
     digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
@@ -14,6 +16,13 @@ def sha256(data: bytes) -> bytes:
     digest = digest.finalize()
     return digest
 
+class TPMHandleException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
 
 class BaseCredential():
 
@@ -67,8 +76,35 @@ class BaseCredential():
 
         self._policy_impl = policy_impl
 
-    def sign(self, data):
+    @backoff.on_exception(backoff.constant, TPMHandleException, interval=1, max_tries=3)
+    def defer_tpm_handles(self):
+        # defert_tpm_handles() provides a retry dely when accessing a TPM Handle.
+        ###  TPM's have limited number of handles to work with and a handle is usually loaded, used, then released
+        ###  this function just adds a delay to prevent concurrent access
+        try:
+           ectx = ESAPI(tcti=self._tcti)
+           ectx.startup(TPM2_SU.CLEAR)
+        except Exception as e:
+            raise e
 
+        for capability_base in [TPM2_HC.HR_TRANSIENT, TPM2_HC.HR_POLICY_SESSION]: # [0x80000000, 0x02000000]:
+            
+            more_data = True
+            current_handle = capability_base     
+            while more_data:
+                more_data, cap_data = ectx.get_capability(
+                    capability=TPM2_CAP.HANDLES, 
+                    prop=current_handle, 
+                    property_count=8
+                )  
+                handles = cap_data.data.handles
+                if not handles:
+                    break
+
+                if len(handles) > 0:
+                     raise TPMHandleException(f"tpm handles in use:  count {len(handles)}")
+
+    def sign(self, data):
         try:
             ectx = ESAPI(tcti=self._tcti)
             ectx.startup(TPM2_SU.CLEAR)
@@ -102,8 +138,7 @@ class BaseCredential():
                     ectx.trsess_set_attributes(session, TPMA_SESSION.ENCRYPT | TPMA_SESSION.DECRYPT)
                     return session
 
-                #tmpl = ek_rsa2048.template
-                nv, tmpl = _ek.EK_RSA2048
+                tmpl = ek_rsa2048.template
             
                 primary1, ek_pub, _, _, _ = ectx.create_primary(
                     inSensitiveOwner, tmpl, ESYS_TR.ENDORSEMENT)
@@ -117,16 +152,13 @@ class BaseCredential():
                     inSensitiveOwner,  TPM2B_PUBLIC(publicArea=self._parent_ecc_template))
                 rkeyLoaded = ectx.load(primary1, k.private, k.public)
                 ectx.flush_context(primary1)
-            
-            if k.empty_auth == False and self._password == '':
-                raise Exception("key has auth but password not set")
+        
 
             if self._password != '' and self._password != None:
                 ectx.tr_set_auth(rkeyLoaded, self._password)
 
+            tmpl = ek_rsa2048.template
 
-            #tmpl = ek_rsa2048.template
-            nv, tmpl = _ek.EK_RSA2048
             handle, outpub, _, _, _ = ectx.create_primary(
                 inSensitiveOwner, tmpl, ESYS_TR.ENDORSEMENT)
 
@@ -167,10 +199,10 @@ class BaseCredential():
                 s = ectx.sign(rkeyLoaded, TPM2B_DIGEST(digest),
                               scheme, validation, session1=sess)
                 
-            ectx.flush_context(handle)
-            ectx.flush_context(rkeyLoaded)
-            ectx.close()
-
             return bytes(s.signature.rsassa.sig)
         except Exception as e:
             raise Exception(e)
+        finally:
+            ectx.flush_context(handle)
+            ectx.flush_context(rkeyLoaded)
+            ectx.close()          

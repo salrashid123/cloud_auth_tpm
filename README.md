@@ -830,27 +830,6 @@ m5OgWpXX8bLqlRLY38P5J3HZOStjYxNBj5I3PdkvD7DFdlb7ZrJZoUg=
 
 As a side note, although this is a private key in PEM format, this is NOT usable anywhere outside of that specific TPM and the actual private rsa/hmac key is never exposed outside of the TPM.
 
-#### Session Encryption
-
-To Enable [TPM Bus encryption](https://trustedcomputinggroup.org/wp-content/uploads/TCG_CPU_TPM_Bus_Protection_Guidance_Passive_Attack_Mitigation_8May23-3.pdf), you need to pass in the hex formatted 'name' of a trusted key you know thats on the TPM  shown [here](https://github.com/salrashid123/tpm2/blob/master/pytss/README.md).
-
-For example, the following prints the EKRSA Public "name" on the tpm.  
-
-```bash
-tpm2_createek -c primary.ctx -G rsa -u ek.pub -Q
-tpm2_readpublic -c primary.ctx -o ek.pem -n name.bin -f pem -Q
-xxd -p -c 100 name.bin 
-  000bc947113c66100e860949eaa17bd5aa2a66dac54b55816e459669ef3975bbc91e
-```
-
-so pass that in as
-
-```bash
---enc_key_name=000bc947113c66100e860949eaa17bd5aa2a66dac54b55816e459669ef3975bbc91e
-```
-
-If you don't provide the name, the EKPub will get read in live and used as-is
-
 #### Local Build
 
 to generate the library from scratch and run local, run 
@@ -862,8 +841,9 @@ cd example
 virtualenv env
 source env/bin/activate
 
+pip3 install setuptools pytest
 pip3 install ../
-## depending on the variant provider
+
 # pip3 install -r requirements-gcp.txt 
 # pip3 install -r requirements-aws.txt 
 # pip3 install -r requirements-azure.txt 

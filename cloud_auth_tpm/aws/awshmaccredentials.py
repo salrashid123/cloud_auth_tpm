@@ -1,13 +1,13 @@
 from tpm2_pytss import *
 from typing import Any
-from cloud_auth_tpm.base import BaseCredential
+from cloud_auth_tpm.base import BaseCredential, TPMHandleException
 from tpm2_pytss.tsskey import TSSPrivKey
-#from tpm2_pytss.internal.templates import ek_rsa2048
-from tpm2_pytss.internal.templates import _ek
+from tpm2_pytss.internal.templates import ek_rsa2048
 
 import json
 from datetime import datetime
 import hmac
+import backoff
 
 import datetime
 import hashlib
@@ -88,15 +88,34 @@ class AWSHMACCredentials(CredentialProvider):
         session.set_config_variable('region', self._region)
         self._long_running_session = Session(botocore_session=session)
 
+    @backoff.on_exception(backoff.constant, TPMHandleException, interval=2, max_tries=3)
+    def defer_tpm_handles(self, ectx):
+        for capability_base in [TPM2_HC.HR_TRANSIENT, TPM2_HC.HR_POLICY_SESSION]: # [0x80000000, 0x02000000]:
+            more_data = True
+            current_handle = capability_base     
+            while more_data:
+                more_data, cap_data = ectx.get_capability(
+                    capability=TPM2_CAP.HANDLES, 
+                    prop=current_handle, 
+                    property_count=8
+                )  
+                handles = cap_data.data.handles
+                if not handles:
+                    break
+
+                if len(handles) > 0:
+                     raise TPMHandleException(f"tpm handles in use:  count {len(handles)}")        
+
     def _sign(self, key, msg):
         return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
     def _getSignatureKey(self, key, dateStamp, regionName, serviceName):
-
         # instead of the first hmac operation using the AWS Secret, use the TPM based key
         # kDate = sign(("AWS4" + key).encode("utf-8"), dateStamp)
         ectx = ESAPI(tcti=self._tcti)
         ectx.startup(TPM2_SU.CLEAR)
+
+        self.defer_tpm_handles(ectx)
 
         k = TSSPrivKey.from_pem(self._keyfile.encode('utf-8'))
         inSensitiveOwner = TPM2B_SENSITIVE_CREATE(TPMS_SENSITIVE_CREATE())
@@ -127,8 +146,7 @@ class AWSHMACCredentials(CredentialProvider):
                 ectx.trsess_set_attributes(session, TPMA_SESSION.ENCRYPT | TPMA_SESSION.DECRYPT)
                 return session
 
-            #tmpl = ek_rsa2048.template
-            nv, tmpl = _ek.EK_RSA2048
+            tmpl = ek_rsa2048.template
 
             inSensitive = TPM2B_SENSITIVE_CREATE(
                     TPMS_SENSITIVE_CREATE(userAuth=TPM2B_AUTH(self._ownerpassword)))                
@@ -149,8 +167,7 @@ class AWSHMACCredentials(CredentialProvider):
         if self._password != None:
             ectx.tr_set_auth(hkeyLoaded, self._password)
 
-        #tmpl = ek_rsa2048.template
-        nv, tmpl = _ek.EK_RSA2048
+        tmpl = ek_rsa2048.template
 
         inSensitive = TPM2B_SENSITIVE_CREATE(
                 TPMS_SENSITIVE_CREATE(userAuth=TPM2B_AUTH(self._ownerpassword))) 

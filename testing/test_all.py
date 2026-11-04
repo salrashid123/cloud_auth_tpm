@@ -51,6 +51,8 @@ class TestGCP(unittest.TestCase):
 
     kh = ectx.load(primary1, k.private, k.public)
     ectx.flush_context(primary1)
+    ectx.flush_context(kh)
+
 
     # scheme = TPMT_SIG_SCHEME(scheme=TPM2_ALG.RSASSA)
     # scheme.details.any.hashAlg = TPM2_ALG.SHA256
@@ -78,7 +80,6 @@ class TestGCP(unittest.TestCase):
     for blob in blobs:
       self.assertEqual(blob.name, "foo.txt")
 
-    ectx.flush_context(kh)
     ectx.close()
 
  

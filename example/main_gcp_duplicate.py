@@ -4,8 +4,7 @@ from cloud_auth_tpm.gcp.gcpcredentials import GCPCredentials
 from cloud_auth_tpm.policy import PCRPolicy, PCRAuthValuePolicy, PolicyORAndDuplicateSelectPolicy
 
 from tpm2_pytss import *
-from tpm2_pytss.internal.templates import _ek
-#from tpm2_pytss.internal.templates import ek_rsa2048
+from tpm2_pytss.internal.templates import ek_rsa2048
 from tpm2_pytss.tsskey import TSSPrivKey
 
 import argparse
@@ -54,8 +53,7 @@ if args.ek_name == '':
         ectx.trsess_set_attributes(session, TPMA_SESSION.ENCRYPT | TPMA_SESSION.DECRYPT)
         return session
 
-    #tmpl = ek_rsa2048.template
-    nv, tmpl = _ek.EK_RSA2048
+    tmpl = ek_rsa2048.template
 
     inSensitive = TPM2B_SENSITIVE_CREATE(
             TPMS_SENSITIVE_CREATE(userAuth=TPM2B_AUTH(args.ownerpassword))) 
@@ -66,8 +64,6 @@ if args.ek_name == '':
     ectx.flush_context(ek_handle)
     ectx.close()    
     
-print(args.ek_name)
-
 policy_impl = None
 
 pol={
@@ -101,21 +97,24 @@ pol={
     ],
 }
 
-policy_impl = PolicyORAndDuplicateSelectPolicy(policy=pol)
+try:
 
-pc = GCPCredentials(tcti=args.tcti,
-                    keyfile=args.keyfile,
-                    ownerpassword=args.ownerpassword,
-                    password=args.password,
-                    policy_impl=policy_impl,
-                    enc_key_name=args.enc_key_name,
-                    use_ek_cert=True,
-                    
-                    email=args.email)
+    policy_impl = PolicyORAndDuplicateSelectPolicy(policy=pol)
 
-storage_client = storage.Client(project=args.project_id, credentials=pc)
+    pc = GCPCredentials(tcti=args.tcti,
+                        keyfile=args.keyfile,
+                        ownerpassword=args.ownerpassword,
+                        password=args.password,
+                        policy_impl=policy_impl,
+                        use_ek_cert=True,         
+                        email=args.email)
 
-blobs = storage_client.list_blobs(args.bucket_name)
+    storage_client = storage.Client(project=args.project_id, credentials=pc)
 
-for blob in blobs:
-  print(blob.name)
+    blobs = storage_client.list_blobs(args.bucket_name)
+
+    for blob in blobs:
+        print(blob.name)
+except Exception as e:
+    print(e)
+

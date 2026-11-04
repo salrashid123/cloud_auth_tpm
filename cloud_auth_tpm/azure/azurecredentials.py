@@ -92,6 +92,7 @@ class AzureCredentials(BaseCredential,TokenCredential):
         return now
 
     def get_token(self, *scopes: str, claims: Optional[str] = None, **kwargs: Any):
+        self.defer_tpm_handles()
         try:
             now = self.utcnow()
             ea = now + timedelta(seconds=10)  # give 10s to do this exchange

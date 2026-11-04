@@ -1,6 +1,7 @@
 from tpm2_pytss import *
 from google.cloud import storage
 from cloud_auth_tpm.gcp.gcpcredentials import GCPCredentials
+from cloud_auth_tpm.base import TPMHandleException
 from cloud_auth_tpm.policy import PCRPolicy, PCRAuthValuePolicy
 
 import argparse
@@ -48,17 +49,32 @@ if args.pcr != '' and args.password != '':
 elif args.pcr != '':
     policy_impl = PCRPolicy(policy=pol)
 
-pc = GCPCredentials(tcti=args.tcti,
-                    keyfile=args.keyfile,
-                    ownerpassword=args.ownerpassword,
-                    password=args.password,
-                    policy_impl=policy_impl,
-                    enc_key_name=args.enc_key_name,
-                    email=args.email)
+try:
+    pc = GCPCredentials(tcti=args.tcti,
+                        keyfile=args.keyfile,
+                        ownerpassword=args.ownerpassword,
+                        password=args.password,
+                        policy_impl=policy_impl,
+                        enc_key_name=args.enc_key_name,
+                        email=args.email)
 
-storage_client = storage.Client(project=args.project_id, credentials=pc)
 
-blobs = storage_client.list_blobs(args.bucket_name)
+    # message_bytes = b"Hello, secure world!"
+    # signature = pc.sign_bytes(message_bytes)
+    # print(f"Message Signature (bytes): {signature.hex()[:60]}")
+    
+    # import google.auth.transport.requests
+    # request = google.auth.transport.requests.Request()
+    # pc.refresh(request)
 
-for blob in blobs:
-  print(blob.name)
+    storage_client = storage.Client(project=args.project_id, credentials=pc)
+
+    blobs = storage_client.list_blobs(args.bucket_name)
+
+    for blob in blobs:
+        print(blob.name)
+
+
+except Exception as e:
+    print(e)
+

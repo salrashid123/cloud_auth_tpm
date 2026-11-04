@@ -77,6 +77,7 @@ class AWSCredentials(BaseCredential, CredentialProvider):
         self._long_running_session = Session(botocore_session=session)
 
     def _refresh(self):
+        self.defer_tpm_handles()
         try:
             # source:  https://nerdydrunk.info/aws:roles_anywhere
             method = 'POST'
