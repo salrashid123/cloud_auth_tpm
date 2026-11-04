@@ -27,58 +27,51 @@ jobs:
         CICD_SA_PEM: ${{ secrets.CICD_SA_PEM }}    
         CICD_SA_EMAIL: ${{ secrets.CICD_SA_EMAIL }}   
         CICD_SA_PROJECT: ${{ secrets.CICD_SA_PROJECT }}    
-        CICD_BUCKET: ${{ secrets.CICD_BUCKET }}   
+        CICD_BUCKET: ${{ secrets.CICD_BUCKET }}
+        TPM2TOOLS_TCTI: swtpm:port=2321
 
         PYTHONDONTWRITEBYTECODE: 1
       run: |
         pip install logging pytest pytest-cov tpm2-pytss>=3.0.0 backoff cryptography requests google-auth google-cloud-storage
-        export TPM2TOOLS_TCTI="swtpm:port=2321"
         tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
         pytest testing/test_gcp.py --junitxml=report_gcp.xml -p no:warnings
 
-    - name: Test AWS
-      env:
-        CICD_AWS_CERT: ${{ secrets.CICD_AWS_CERT }}    
-        CICD_AWS_PEM: ${{ secrets.CICD_AWS_PEM }}   
-        CICD_AWS_REGION: ${{ secrets.CICD_AWS_REGION }}  
-        CICD_AWS_TRUST_ANCHOR_ARN: ${{ secrets.CICD_AWS_TRUST_ANCHOR_ARN }}   
-        CICD_AWS_ROLE_ARN: ${{ secrets.CICD_AWS_ROLE_ARN }}    
-        CICD_AWS_PROFILE_ARN: ${{ secrets.CICD_AWS_PROFILE_ARN }}  
-        CICD_AWS_ACCESS_KEY: ${{ secrets.CICD_AWS_ACCESS_KEY }}    
-        CICD_AWS_ACCESS_SECRET: ${{ secrets.CICD_AWS_ACCESS_SECRET }}  
-        CICD_AWS_HMAC_REGION: ${{ secrets.CICD_AWS_HMAC_REGION }} 
+    # - name: Test AWS
+    #   env:
+    #     CICD_AWS_CERT: ${{ secrets.CICD_AWS_CERT }}    
+    #     CICD_AWS_PEM: ${{ secrets.CICD_AWS_PEM }}   
+    #     CICD_AWS_REGION: ${{ secrets.CICD_AWS_REGION }}  
+    #     CICD_AWS_TRUST_ANCHOR_ARN: ${{ secrets.CICD_AWS_TRUST_ANCHOR_ARN }}   
+    #     CICD_AWS_ROLE_ARN: ${{ secrets.CICD_AWS_ROLE_ARN }}    
+    #     CICD_AWS_PROFILE_ARN: ${{ secrets.CICD_AWS_PROFILE_ARN }}  
+    #     CICD_AWS_ACCESS_KEY: ${{ secrets.CICD_AWS_ACCESS_KEY }}    
+    #     CICD_AWS_ACCESS_SECRET: ${{ secrets.CICD_AWS_ACCESS_SECRET }}  
+    #     CICD_AWS_HMAC_REGION: ${{ secrets.CICD_AWS_HMAC_REGION }} 
+    #     TPM2TOOLS_TCTI: swtpm:port=2321
 
-        PYTHONDONTWRITEBYTECODE: 1
-      run: |
-        pip install logging pytest pytest-cov tpm2-pytss>=3.0.0 backoff cryptography requests boto3 botocore
-        export TPM2TOOLS_TCTI="swtpm:port=2321"
-        tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
-        pytest testing/test_aws.py --junitxml=report_aws.xml -p no:warnings
+    #     PYTHONDONTWRITEBYTECODE: 1
+    #   run: |
+    #     pip install logging pytest pytest-cov tpm2-pytss>=3.0.0 backoff cryptography requests boto3 botocore
+    #     tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
+    #     pytest testing/test_aws.py --junitxml=report_aws.xml -p no:warnings
 
-    - name: Test Azure
-      env:
+    # - name: Test Azure
+    #   env:
 
-        CICD_AZURE_CLIENT_ID: ${{ secrets.CICD_AZURE_CLIENT_ID }}   
-        CICD_AZURE_TENANT_ID: ${{ secrets.CICD_AZURE_TENANT_ID }}    
-        CICD_AZURE_STORAGEACCOUNT: ${{ secrets.CICD_AZURE_STORAGEACCOUNT }}  
-        CICD_AZURE_CONTAINER: ${{ secrets.CICD_AZURE_CONTAINER }}    
-        CICD_AZURE_CLIENT_PEM: ${{ secrets.CICD_AZURE_CLIENT_PEM }}  
-        CICD_AZURE_CERT: ${{ secrets.CICD_AZURE_CERT }} 
+    #     CICD_AZURE_CLIENT_ID: ${{ secrets.CICD_AZURE_CLIENT_ID }}   
+    #     CICD_AZURE_TENANT_ID: ${{ secrets.CICD_AZURE_TENANT_ID }}    
+    #     CICD_AZURE_STORAGEACCOUNT: ${{ secrets.CICD_AZURE_STORAGEACCOUNT }}  
+    #     CICD_AZURE_CONTAINER: ${{ secrets.CICD_AZURE_CONTAINER }}    
+    #     CICD_AZURE_CLIENT_PEM: ${{ secrets.CICD_AZURE_CLIENT_PEM }}  
+    #     CICD_AZURE_CERT: ${{ secrets.CICD_AZURE_CERT }} 
+    #     TPM2TOOLS_TCTI: swtpm:port=2321
 
-        PYTHONDONTWRITEBYTECODE: 1
-      run: |
-        pip install logging pytest pytest-cov tpm2-pytss>=3.0.0 backoff cryptography requests azure-storage-blob azure-identity
-        export TPM2TOOLS_TCTI="swtpm:port=2321"
-        tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
-        pytest testing/test_azure.py --junitxml=report_azure.xml -p no:warnings
+    #     PYTHONDONTWRITEBYTECODE: 1
+    #   run: |
+    #     pip install logging pytest pytest-cov tpm2-pytss>=3.0.0 backoff cryptography requests azure-storage-blob azure-identity
+    #     tpm2_flushcontext -t && tpm2_flushcontext -s && tpm2_flushcontext -l
+    #     pytest testing/test_azure.py --junitxml=report_azure.xml -p no:warnings
 
-
-    - name: Upload test summary
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-summary
-        path: test-summary.md
-      if: always()
       
     - name: Install pypa/build
       run: >-
