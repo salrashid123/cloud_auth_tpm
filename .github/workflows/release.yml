@@ -10,7 +10,7 @@ jobs:
     steps:
     - name: Install a swtpm
       run: |
-        sudo apt-get update && sudo apt-get -y install swtpm swtpm-tools libtss2-dev
+        sudo apt-get update && sudo apt-get -y install swtpm swtpm-tools libtss2-dev tpm2-tools
 
     - name: run swtpm
       run: |
@@ -49,7 +49,7 @@ jobs:
         PYTHONDONTWRITEBYTECODE: 1
       run: |
         pip install logging pytest pytest-cov tpm2-pytss>=3.0.0 backoff cryptography requests boto3 botocore
-        pytest testing/test_awsl.py --junitxml=report_aws.xml -p no:warnings
+        pytest testing/test_aws.py --junitxml=report_aws.xml -p no:warnings
 
     - name: Test Azure
       env:
