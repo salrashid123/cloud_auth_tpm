@@ -173,9 +173,8 @@ class BaseCredential():
             
             scheme = TPMT_SIG_SCHEME(scheme=TPM2_ALG.RSASSA)
             scheme.details.any.hashAlg = TPM2_ALG.SHA256
-            validation = TPMT_TK_HASHCHECK(
-                tag=TPM2_ST.HASHCHECK, hierarchy=TPM2_RH.OWNER)
-            digest, ticket = ectx.hash(data, TPM2_ALG.SHA256, ESYS_TR.OWNER)
+
+            digest, ticket = ectx.hash(data, TPM2_ALG.SHA256, ESYS_TR.ENDORSEMENT)
 
             if self._policy_impl == None:
                 hsess = ectx.start_auth_session(
@@ -193,12 +192,12 @@ class BaseCredential():
                     hsess, (TPMA_SESSION.DECRYPT)
                 )
                 s = ectx.sign(rkeyLoaded, TPM2B_DIGEST(
-                    digest), scheme, validation, session1=hsess)
+                    digest), scheme, ticket, session1=hsess)
             else:
                 sess = self._policy_impl.policy_callback(
                     ectx=ectx, handle=handle)
                 s = ectx.sign(rkeyLoaded, TPM2B_DIGEST(digest),
-                              scheme, validation, session1=sess)
+                              scheme, ticket, session1=sess)
                 
             ectx.flush_context(handle)
             ectx.flush_context(rkeyLoaded)
